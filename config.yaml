@@ -1,0 +1,16 @@
+sezioni_alias:
+  documentazione: "01_Documentazione"
+  chiarimenti: "02_Chiarimenti"
+  offerta: "04_OffertaTecnica"
+  preliminare: "01_Preliminare"
+  piano: "02_PianoOperativo"
+
+regex:
+  gara: '^(\\d{4})_([^-]+)(?:-([A-Za-z0-9_]+))?$'
+  sd: '^SD(\\d+)$'
+  oda: '^(ODA\\d+)_([^/\\\\]+)$'
+  as: '^(AS\\d+)_([0-9]+)?_?RDO_([^/\\\\]+)$'
+
+paths:
+  kb_gare: "${KB_GARE_DIR}"
+  kb_aq: "${KB_AQ_DIR}"
