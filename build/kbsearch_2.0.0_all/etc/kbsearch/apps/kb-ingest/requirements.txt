@@ -1,7 +1,0 @@
-sentence-transformers==3.0.1
-qdrant-client==1.9.2
-python-docx
-beautifulsoup4
-lxml
-pypdf
-tqdm

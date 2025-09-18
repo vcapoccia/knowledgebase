@@ -1,323 +1,1057 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>DIOS Knowledge Base</title>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#f6f7fb; --panel:#fff; --muted:#8b8fa3; --text:#1f2430; --accent:#2f6bff;
-    --chip:#eef2ff; --chip-text:#2b3a67; --chip-on:#2f6bff; --chip-on-text:#fff;
-    --border:#e5e8f0; --danger:#e5484d; --ok:#0a7c2e;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);font:14px/1.35 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text)}
-  .wrap{max-width:1200px;margin:28px auto;padding:0 16px}
-  .hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-  .brand{display:flex;align-items:center;gap:10px;margin-right:16px}
-  .brand .dot{width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,#4f8cff,#7aa6ff)}
-  .brand h1{font-size:16px;margin:0 0 -1px 0}
-  .search{flex:1;display:flex;gap:8px}
-  .search input{flex:1;height:40px;padding:0 12px;border:1px solid var(--border);border-radius:10px;background:#fff;outline:none}
-  .search input:focus{border-color:#c9d3ff;box-shadow:0 0 0 3px #e9efff}
-  .btn{height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--border);background:#fff;cursor:pointer}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  .opts{display:flex;align-items:center;gap:14px;margin-left:6px;color:var(--muted)}
-  .opts input{vertical-align:middle;margin-right:6px}
-  .grid{display:grid;grid-template-columns:280px 1fr;gap:16px}
-  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px}
-  .left{padding:14px}
-  .left h3{font-size:12px;letter-spacing:.02em;margin:14px 0 10px;color:#6d7389;text-transform:uppercase}
-  .facet-sec{padding-bottom:6px;border-bottom:1px dashed var(--border)}
-  .facet-list{display:flex;flex-wrap:wrap;gap:8px 8px;margin-bottom:10px}
-  .chip{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;background:var(--chip);color:var(--chip-text);border:1px solid #dfe6ff;cursor:pointer}
-  .chip[data-on="1"]{background:var(--chip-on);color:var(--chip-on-text);border-color:var(--chip-on)}
-  .chip .cnt{font-size:12px;opacity:.8}
-  .right{padding:0}
-  .result{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
-  .result h4{margin:0 0 6px;font-size:15px}
-  .meta{display:flex;flex-wrap:wrap;gap:6px 8px;margin:4px 0}
-  .tag{display:inline-flex;align-items:center;gap:6px;background:#f1f4fb;border:1px solid var(--border);color:#4b5167;border-radius:999px;padding:4px 8px;font-size:12px}
-  .path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#757c95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .score{margin-left:auto;color:#4b5167;font-size:12px}
-  .open{margin-left:8px}
-  .open .btn{height:32px}
-  .footer{padding:12px;text-align:center}
-  .error{color:var(--danger);padding:12px}
-  .muted{color:var(--muted)}
-  pre.debug{white-space:pre-wrap;background:#0b1023;color:#c9d1ff;border-radius:12px;margin:12px;padding:12px;max-height:320px;overflow:auto;border:1px solid #1b2352}
-  .toolbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border)}
-  .resinfo{color:var(--muted)}
-  .right .empty{padding:22px}
-  .btn.ghost{background:#fff;border-color:var(--border)}
-  .btn.ghost:hover{border-color:#cfd6ea}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Knowledge Base Sistema di Ricerca Semantica - Ricerca intelligente nei tuoi documenti">
+    <meta name="keywords" content="knowledge base, ricerca semantica, documenti, AI">
+    <meta name="author" content="Knowledge Base System v2.0">
+    
+    <title>Knowledge Base - Ricerca Semantica</title>
+    
+    <!-- Preconnect per performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --secondary-color: #64748b;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --error-color: #dc2626;
+            --background: #ffffff;
+            --background-secondary: #f8fafc;
+            --surface: #ffffff;
+            --surface-hover: #f1f5f9;
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius: 0.5rem;
+            --radius-lg: 0.75rem;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --background: #0f172a;
+            --background-secondary: #1e293b;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --border: #334155;
+            --border-hover: #475569;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --primary-light: #1e293b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .logo i {
+            font-size: 1.5rem;
+        }
+
+        .search-section {
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .search-container {
+            position: relative;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--background);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .search-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .search-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-toggle {
+            padding: 0.5rem;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover {
+            background: var(--surface-hover);
+            border-color: var(--border-hover);
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+            padding: 2rem 0;
+            min-height: calc(100vh - 120px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .sidebar-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid transparent;
+        }
+
+        .filter-item:hover {
+            background: var(--surface-hover);
+            border-color: var(--border);
+        }
+
+        .filter-item.active {
+            background: var(--primary-light);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .filter-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .filter-count {
+            background: var(--background-secondary);
+            color: var(--text-muted);
+            padding: 0.125rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .filter-item.active .filter-count {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .exclude-docs {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--background-secondary);
+            border-radius: var(--radius);
+            margin-top: 1rem;
+        }
+
+        .exclude-docs input[type="checkbox"] {
+            width: 1rem;
+            height: 1rem;
+            accent-color: var(--primary-color);
+        }
+
+        .exclude-docs label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        /* Content Area */
+        .content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .search-stats {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+        }
+
+        .stats-text {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .stats-time {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .result-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .result-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-1px);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .result-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .result-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .result-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .result-score {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--success-color);
+            color: white;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .result-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .result-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tag {
+            padding: 0.25rem 0.75rem;
+            background: var(--background-secondary);
+            color: var(--text-secondary);
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 0.75rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-secondary);
+            border-radius: var(--radius);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .action-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .action-btn.primary {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .action-btn.primary:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid var(--border);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .main-layout {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .sidebar {
+                position: static;
+                order: 2;
+            }
+
+            .search-container {
+                flex-direction: column;
+            }
+
+            .search-input {
+                padding-left: 1rem;
+            }
+
+            .search-icon {
+                display: none;
+            }
+        }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .text-primary { color: var(--text-primary); }
+        .text-secondary { color: var(--text-secondary); }
+        .text-muted { color: var(--text-muted); }
+        .text-center { text-align: center; }
+        .font-medium { font-weight: 500; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="hdr">
-    <div class="brand"><div class="dot"></div><h1>DIOS Knowledge Base</h1></div>
-    <div class="search">
-      <input id="q" placeholder="Cerca… es: cartella clinica, telecardiologia, sit, 118…" autocomplete="off"/>
-      <button class="btn primary" id="go">Cerca</button>
-      <button class="btn" id="clear">Pulisci</button>
-    </div>
-    <div class="opts">
-      <label><input type="checkbox" id="excludeDoc"> Escludi <b>Documentazione</b></label>
-      <label><input type="checkbox" id="dbg"> Debug API</label>
-    </div>
-  </div>
-
-  <div class="grid">
-    <aside class="card left" id="facets">
-      <h3>Filtri rapidi</h3>
-      <div class="facet-sec" data-key="sezione">
-        <h3>sezione</h3><div class="facet-list"></div>
-      </div>
-      <div class="facet-sec" data-key="anno">
-        <h3>anno</h3><div class="facet-list"></div>
-      </div>
-      <div class="facet-sec" data-key="cliente">
-        <h3>cliente</h3><div class="facet-list"></div>
-      </div>
-      <div class="facet-sec" data-key="ambito">
-        <h3>ambito</h3><div class="facet-list"></div>
-      </div>
-      <div class="facet-sec" data-key="kb_area">
-        <h3>kb_area</h3><div class="facet-list"></div>
-      </div>
-      <div class="facet-sec" data-key="livello">
-        <h3>livello</h3><div class="facet-list"></div>
-      </div>
-      <div style="padding:10px 2px 4px">
-        <button class="btn ghost" id="reset">Azzera filtri</button>
-      </div>
-    </aside>
-
-    <section class="card right" id="results">
-      <div class="toolbar">
-        <div class="resinfo" id="resinfo">0 risultati</div>
-        <div>
-          <button class="btn ghost" id="more" style="display:none">Carica altri</button>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <i class="fas fa-brain"></i>
+                    <span>Knowledge Base</span>
+                </a>
+                
+                <div class="search-section">
+                    <form id="searchForm" class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            class="search-input" 
+                            placeholder="Cerca nei documenti..." 
+                            autocomplete="off"
+                        >
+                        <button type="submit" class="search-btn" id="searchBtn">
+                            <i class="fas fa-search"></i>
+                            <span>Cerca</span>
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="header-actions">
+                    <button class="theme-toggle" id="themeToggle" title="Cambia tema">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
         </div>
-      </div>
-      <div id="list"></div>
-      <div id="debug" style="display:none">
-        <pre class="debug" id="dbgFacets"></pre>
-        <pre class="debug" id="dbgSearch"></pre>
-      </div>
-    </section>
-  </div>
-</div>
+    </header>
 
-<script>
-(() => {
-  const API_BASE = '/api';
-  const PAGE_SIZE = 20;
-  const DOC_EXCLUDE_VALUE = 'Documentazione';   // valore server-side per exclude_sections
+    <!-- Main Layout -->
+    <div class="container">
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Filtri</h3>
+                    <div id="filtersContainer" class="filter-group">
+                        <!-- Dynamic filters will be inserted here -->
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="exclude-docs">
+                        <input type="checkbox" id="excludeDocumentation">
+                        <label for="excludeDocumentation">Escludi Documentazione</label>
+                    </div>
+                </div>
 
-  const state = {
-    q: '',
-    page: 0,
-    total: 0,
-    exclude: false,
-    filters: {},     // { key: Set(values) }
-    debug: false,
-    fetching: false
-  };
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Ricerca Rapida</h3>
+                    <div class="filter-group">
+                        <div class="filter-item" data-quick-search="gare">
+                            <div class="filter-label">
+                                <i class="fas fa-gavel"></i>
+                                <span>Gare</span>
+                            </div>
+                        </div>
+                        <div class="filter-item" data-quick-search="contratti">
+                            <div class="filter-label">
+                                <i class="fas fa-file-contract"></i>
+                                <span>Contratti</span>
+                            </div>
+                        </div>
+                        <div class="filter-item" data-quick-search="procedure">
+                            <div class="filter-label">
+                                <i class="fas fa-cogs"></i>
+                                <span>Procedure</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
 
-  const el = (sel, root=document) => root.querySelector(sel);
-  const els = (sel, root=document) => [...root.querySelectorAll(sel)];
+            <!-- Main Content -->
+            <main class="content">
+                <!-- Search Stats -->
+                <div id="searchStats" class="search-stats hidden">
+                    <div class="stats-text">
+                        Trovati <span id="resultCount">0</span> risultati
+                    </div>
+                    <div class="stats-time">
+                        in <span id="searchTime">0.00</span>s
+                    </div>
+                </div>
 
-  const $q = el('#q'), $go = el('#go'), $clear = el('#clear');
-  const $exclude = el('#excludeDoc'), $dbg = el('#dbg');
-  const $facets = el('#facets'), $list = el('#list'), $more = el('#more'), $resinfo = el('#resinfo');
-  const $dbgBox = el('#debug'), $dbgFacets = el('#dbgFacets'), $dbgSearch = el('#dbgSearch');
-  const $reset = el('#reset');
+                <!-- Results Container -->
+                <div id="resultsContainer" class="results-container">
+                    <!-- Welcome State -->
+                    <div id="welcomeState" class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h3>Benvenuto nel Knowledge Base</h3>
+                        <p>Usa la barra di ricerca per trovare documenti e informazioni nel sistema.</p>
+                    </div>
 
-  /* -------------------- networking -------------------- */
-  function buildParams(extra={}) {
-    const p = new URLSearchParams();
-    const q = (extra.q ?? state.q ?? '').trim();
-    if (q.length) p.set('q', q);
-    p.set('k', extra.k ?? PAGE_SIZE);
-    p.set('page', extra.page ?? state.page);
-    if (extra.exclude ?? state.exclude) {
-      p.set('exclude_sections', DOC_EXCLUDE_VALUE);
-    }
-    // filters as repeated param ?filters=key:value
-    const filters = extra.filters ?? state.filters;
-    Object.entries(filters).forEach(([key, set]) => {
-      [...set].forEach(v => p.append('filters', `${key}:${v}`));
-    });
-    return p;
-  }
+                    <!-- Loading State -->
+                    <div id="loadingState" class="loading hidden">
+                        <div class="spinner"></div>
+                        <span style="margin-left: 1rem;">Ricerca in corso...</span>
+                    </div>
 
-  async function apiGet(path, params) {
-    const url = `${API_BASE}${path}?${params.toString()}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-    const data = await r.json();
-    if (state.debug) {
-      if (path.includes('/facets')) $dbgFacets.textContent = JSON.stringify({url, data}, null, 2);
-      if (path.includes('/search')) $dbgSearch.textContent = JSON.stringify({url, data}, null, 2);
-    }
-    return data;
-  }
+                    <!-- Empty Results -->
+                    <div id="emptyState" class="empty-state hidden">
+                        <i class="fas fa-search-minus"></i>
+                        <h3>Nessun risultato trovato</h3>
+                        <p>Prova a modificare i termini di ricerca o rimuovere alcuni filtri.</p>
+                    </div>
 
-  /* -------------------- rendering -------------------- */
-  function fmt(n) { return new Intl.NumberFormat('it-IT').format(n); }
-  function tag(label, value) { return `<span class="tag"><b>${label}:</b> ${value}</span>` }
-  function chip(key, value, count, on) {
-    return `<span class="chip" data-key="${key}" data-value="${value}" data-on="${on?1:0}">
-      <span>${value}</span><span class="cnt">${fmt(count)}</span>
-    </span>`;
-  }
-
-  function renderFacets(data) {
-    const strong = data?.strong || {};
-    const groups = ['sezione','anno','cliente','ambito','kb_area','livello'];
-    groups.forEach(g => {
-      const box = el(`.facet-sec[data-key="${g}"] .facet-list`);
-      if (!box) return;
-      box.innerHTML = '';
-      const items = strong[g] || {};
-      const selected = state.filters[g] ? new Set(state.filters[g]) : new Set();
-      // ordina alfabetico/numerico
-      const keys = Object.keys(items).sort((a,b)=>{
-        const na = Number(a), nb = Number(b);
-        if(!Number.isNaN(na) && !Number.isNaN(nb)) return na-nb;
-        return a.localeCompare(b,'it',{numeric:true});
-      });
-      keys.forEach(v=>{
-        const cnt = items[v] ?? 0;
-        const on = selected.has(String(v));
-        box.insertAdjacentHTML('beforeend', chip(g, String(v), cnt, on));
-      });
-    });
-  }
-
-  function renderResults(hits, append=false) {
-    if (!append) $list.innerHTML = '';
-    if (!Array.isArray(hits) || hits.length===0) {
-      if (!append) $list.innerHTML = `<div class="empty muted">Nessun risultato.</div>`;
-      return;
-    }
-    const fr = document.createDocumentFragment();
-    hits.forEach(h=>{
-      const title = h.title || '(senza titolo)';
-      const s = h.sezione ?? 'unknown';
-      const c = h.cliente ?? 'unknown';
-      const a = (h.anno ?? '').toString();
-      const amb = h.ambito ?? 'unknown';
-      const path = String(h.path_rel || '');
-      const score = typeof h.score==='number' ? h.score.toFixed(3) : (h.score || '');
-      const node = document.createElement('div');
-      node.className = 'result';
-      node.innerHTML = `
-        <div style="flex:1;min-width:0">
-          <h4>${title}</h4>
-          <div class="meta">
-            ${tag('Sezione', s)} ${tag('Cliente', c)} ${a?tag('Anno', a):''} ${tag('Ambito', amb)}
-          </div>
-          <div class="path">${path}</div>
+                    <!-- Results will be inserted here -->
+                </div>
+            </main>
         </div>
-        <div class="score">score: <b>${score}</b></div>
-        <div class="open"><a class="btn" href="/files/${encodeURI(path)}" target="_blank" rel="noopener">Apri</a></div>
-      `;
-      fr.appendChild(node);
-    });
-    $list.appendChild(fr);
-  }
+    </div>
 
-  function updateResInfo(count, total){
-    $resinfo.textContent = `${fmt(total)} risultati`;
-    $more.style.display = (count === PAGE_SIZE) ? '' : 'none';
-  }
+    <!-- JavaScript -->
+    <script>
+        // Global State
+        let currentQuery = '';
+        let currentFilters = [];
+        let searchResults = [];
+        let isLoading = false;
 
-  /* -------------------- facet selection -------------------- */
-  function toggleFacet(key, value){
-    const set = state.filters[key] || (state.filters[key] = new Set());
-    if (set.has(value)) set.delete(value); else set.add(value);
-    // rimuovi key se vuoto
-    if (set.size===0) delete state.filters[key];
-    state.page = 0;
-    search();
-  }
+        // DOM Elements
+        const searchForm = document.getElementById('searchForm');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const themeToggle = document.getElementById('themeToggle');
+        const filtersContainer = document.getElementById('filtersContainer');
+        const excludeDocsCheckbox = document.getElementById('excludeDocumentation');
+        const searchStats = document.getElementById('searchStats');
+        const resultCount = document.getElementById('resultCount');
+        const searchTime = document.getElementById('searchTime');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const welcomeState = document.getElementById('welcomeState');
+        const loadingState = document.getElementById('loadingState');
+        const emptyState = document.getElementById('emptyState');
 
-  $facets.addEventListener('click', (ev)=>{
-    const t = ev.target.closest('.chip');
-    if (!t) return;
-    toggleFacet(t.dataset.key, t.dataset.value);
-  });
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTheme();
+            loadFacets();
+            setupEventListeners();
+        });
 
-  /* -------------------- search flow -------------------- */
-  async function search(append=false){
-    if (state.fetching) return;
-    state.fetching = true;
-    try{
-      $dbgBox.style.display = state.debug ? '' : 'none';
+        // Theme Management
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        }
 
-      // 1) facets (con i filtri attuali) – serve per aggiornare conteggi e “selected”
-      const pFac = buildParams({page:0});
-      const fData = await apiGet('/facets', pFac);
-      renderFacets(fData);
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            const icon = themeToggle.querySelector('i');
+            icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            localStorage.setItem('theme', theme);
+        }
 
-      // 2) search
-      const pSrch = buildParams({page: state.page});
-      const sData = await apiGet('/search', pSrch);
-      // la tua API può restituire data.hits oppure data.results
-      const hits = Array.isArray(sData?.hits || sData?.results) ? (sData.hits || sData.results) : [];
-      renderResults(hits, append);
-      state.total = Number(sData?.count ?? (state.page*PAGE_SIZE + hits.length));
-      updateResInfo(hits.length, state.total);
-    }catch(err){
-      $list.innerHTML = `<div class="error">Errore durante la ricerca: ${err.message}</div>`;
-      $more.style.display = 'none';
-    }finally{
-      state.fetching = false;
-    }
-  }
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+        }
 
-  /* -------------------- events -------------------- */
-  $go.addEventListener('click', ()=>{
-    state.q = $q.value.trim();
-    state.page = 0;
-    search();
-  });
-  $clear.addEventListener('click', ()=>{
-    $q.value = '';
-    state.q = '';
-    state.page = 0;
-    state.filters = {};
-    search();
-  });
-  $exclude.addEventListener('change', ()=>{
-    state.exclude = $exclude.checked;
-    state.page = 0;
-    search();
-  });
-  $dbg.addEventListener('change', ()=>{
-    state.debug = $dbg.checked;
-    $dbgBox.style.display = state.debug ? '' : 'none';
-  });
-  $q.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ $go.click(); }});
-  $reset.addEventListener('click', ()=>{
-    state.filters = {};
-    state.page = 0;
-    search();
-  });
-  $more.addEventListener('click', ()=>{
-    state.page += 1;
-    search(true);
-  });
+        // Event Listeners
+        function setupEventListeners() {
+            searchForm.addEventListener('submit', handleSearch);
+            themeToggle.addEventListener('click', toggleTheme);
+            excludeDocsCheckbox.addEventListener('change', handleFiltersChange);
+            
+            // Quick search
+            document.querySelectorAll('[data-quick-search]').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const query = e.currentTarget.dataset.quickSearch;
+                    searchInput.value = query;
+                    performSearch(query);
+                });
+            });
 
-  // init (stato di default: niente query -> nessuna chiamata; fai pure auto-lancio se preferisci)
-  // state.q = ''; search();
-})();
-</script>
+            // Auto-search on input (debounced)
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    if (e.target.value.length >= 3) {
+                        performSearch(e.target.value);
+                    }
+                }, 500);
+            });
+        }
+
+        // Search Functions
+        async function handleSearch(e) {
+            e.preventDefault();
+            const query = searchInput.value.trim();
+            if (query) {
+                await performSearch(query);
+            }
+        }
+
+        async function performSearch(query) {
+            if (isLoading) return;
+            
+            currentQuery = query;
+            setLoadingState(true);
+            
+            try {
+                const startTime = performance.now();
+                
+                const requestBody = {
+                    query: query,
+                    limit: 20,
+                    filters: buildFilters()
+                };
+                
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const endTime = performance.now();
+                const searchDuration = ((endTime - startTime) / 1000).toFixed(2);
+                
+                searchResults = data.results || [];
+                displayResults(searchResults, searchDuration);
+                
+            } catch (error) {
+                console.error('Search error:', error);
+                showError('Errore durante la ricerca. Riprova più tardi.');
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        function buildFilters() {
+            const filters = [];
+            
+            // Exclude documentation filter
+            if (excludeDocsCheckbox.checked) {
+                filters.push({
+                    key: 'exclude_documentation',
+                    value: true
+                });
+            }
+            
+            // Active facet filters
+            currentFilters.forEach(filter => {
+                filters.push(filter);
+            });
+            
+            return filters;
+        }
+
+        // Display Functions
+        function displayResults(results, searchTime) {
+            hideAllStates();
+            
+            if (results.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            // Show search stats
+            searchStats.classList.remove('hidden');
+            resultCount.textContent = results.length;
+            document.getElementById('searchTime').textContent = searchTime;
+            
+            // Clear previous results
+            const existingResults = resultsContainer.querySelectorAll('.result-card');
+            existingResults.forEach(card => card.remove());
+            
+            // Create result cards
+            results.forEach(result => {
+                const card = createResultCard(result);
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        function createResultCard(result) {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            
+            const score = Math.round(result.score * 100);
+            const scoreClass = score >= 80 ? 'high' : score >= 60 ? 'medium' : 'low';
+            
+            card.innerHTML = `
+                <div class="result-header">
+                    <div>
+                        <h3 class="result-title">${escapeHtml(result.metadata?.title || result.path || 'Documento')}</h3>
+                        <div class="result-meta">
+                            <span><i class="fas fa-file"></i> ${getFileType(result.path)}</span>
+                            <span><i class="fas fa-folder"></i> ${getCategory(result.path)}</span>
+                            ${result.metadata?.date ? `<span><i class="fas fa-calendar"></i> ${formatDate(result.metadata.date)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="result-score">
+                        <i class="fas fa-star"></i>
+                        <span>${score}%</span>
+                    </div>
+                </div>
+                
+                <div class="result-content">
+                    ${highlightText(result.text || result.content || 'Contenuto non disponibile', currentQuery)}
+                </div>
+                
+                ${result.metadata?.tags ? `
+                <div class="result-tags">
+                    ${result.metadata.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+                </div>
+                ` : ''}
+                
+                <div class="result-actions">
+                    <a href="/files/${result.path}" class="action-btn primary" target="_blank">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>Apri Documento</span>
+                    </a>
+                    <button class="action-btn" onclick="copyToClipboard('${escapeHtml(result.text)}')">
+                        <i class="fas fa-copy"></i>
+                        <span>Copia Testo</span>
+                    </button>
+                    <button class="action-btn" onclick="shareResult('${escapeHtml(result.metadata?.title || result.path)}')">
+                        <i class="fas fa-share"></i>
+                        <span>Condividi</span>
+                    </button>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Facets/Filters
+        async function loadFacets() {
+            try {
+                const response = await fetch('/api/facets');
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                displayFacets(data.facets || {});
+            } catch (error) {
+                console.error('Error loading facets:', error);
+            }
+        }
+
+        function displayFacets(facets) {
+            filtersContainer.innerHTML = '';
+            
+            Object.entries(facets).forEach(([key, values]) => {
+                if (values && Object.keys(values).length > 0) {
+                    const section = createFacetSection(key, values);
+                    filtersContainer.appendChild(section);
+                }
+            });
+        }
+
+        function createFacetSection(facetKey, values) {
+            const section = document.createElement('div');
+            section.className = 'facet-section';
+            
+            const title = document.createElement('h4');
+            title.className = 'filter-title';
+            title.textContent = getFacetTitle(facetKey);
+            section.appendChild(title);
+            
+            Object.entries(values).forEach(([value, count]) => {
+                const item = document.createElement('div');
+                item.className = 'filter-item';
+                item.dataset.facetKey = facetKey;
+                item.dataset.facetValue = value;
+                
+                item.innerHTML = `
+                    <div class="filter-label">
+                        <span>${escapeHtml(value)}</span>
+                    </div>
+                    <div class="filter-count">${count}</div>
+                `;
+                
+                item.addEventListener('click', () => toggleFilter(facetKey, value, item));
+                section.appendChild(item);
+            });
+            
+            return section;
+        }
+
+        function toggleFilter(key, value, element) {
+            const filterIndex = currentFilters.findIndex(f => f.key === key && f.value === value);
+            
+            if (filterIndex >= 0) {
+                // Remove filter
+                currentFilters.splice(filterIndex, 1);
+                element.classList.remove('active');
+            } else {
+                // Add filter
+                currentFilters.push({ key, value });
+                element.classList.add('active');
+            }
+            
+            // Refresh search if there's a current query
+            if (currentQuery) {
+                performSearch(currentQuery);
+            }
+        }
+
+        function handleFiltersChange() {
+            if (currentQuery) {
+                performSearch(currentQuery);
+            }
+        }
+
+        // Utility Functions
+        function setLoadingState(loading) {
+            isLoading = loading;
+            
+            if (loading) {
+                hideAllStates();
+                loadingState.classList.remove('hidden');
+                searchBtn.disabled = true;
+                searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Ricerca...</span>';
+            } else {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '<i class="fas fa-search"></i><span>Cerca</span>';
+            }
+        }
+
+        function hideAllStates() {
+            welcomeState.classList.add('hidden');
+            loadingState.classList.add('hidden');
+            emptyState.classList.add('hidden');
+            searchStats.classList.add('hidden');
+        }
+
+        function showError(message) {
+            // Simple error display - could be enhanced with a toast/modal
+            alert(message);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function highlightText(text, query) {
+            if (!query || !text) return escapeHtml(text);
+            
+            const escapedText = escapeHtml(text);
+            const regex = new RegExp(`(${escapeHtml(query)})`, 'gi');
+            return escapedText.replace(regex, '<mark>$1</mark>');
+        }
+
+        function getFileType(path) {
+            if (!path) return 'Unknown';
+            const ext = path.split('.').pop().toLowerCase();
+            const typeMap = {
+                'pdf': 'PDF',
+                'docx': 'Word',
+                'doc': 'Word',
+                'txt': 'Text',
+                'md': 'Markdown',
+                'html': 'HTML'
+            };
+            return typeMap[ext] || ext.toUpperCase();
+        }
+
+        function getCategory(path) {
+            if (!path) return 'Generale';
+            if (path.includes('_Gare')) return 'Gare';
+            if (path.includes('_AQ')) return 'AQ';
+            return 'Generale';
+        }
+
+        function formatDate(dateStr) {
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('it-IT');
+            } catch {
+                return dateStr;
+            }
+        }
+
+        function getFacetTitle(key) {
+            const titleMap = {
+                'category': 'Categoria',
+                'type': 'Tipo File',
+                'year': 'Anno',
+                'author': 'Autore'
+            };
+            return titleMap[key] || key;
+        }
+
+        // Action Functions
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Could show a toast notification here
+                console.log('Text copied to clipboard');
+            });
+        }
+
+        function shareResult(title) {
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    url: window.location.href
+                });
+            } else {
+                copyToClipboard(window.location.href);
+            }
+        }
+    </script>
 </body>
 </html>
-

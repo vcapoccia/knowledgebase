@@ -1,7 +1,0 @@
-torch>=2.6
-fastapi==0.112.2
-uvicorn[standard]==0.30.6
-qdrant-client==1.11.3
-sentence-transformers==3.0.1
-pydantic==2.8.2
-PyYAML==6.0.2

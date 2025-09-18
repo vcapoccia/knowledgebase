@@ -1,0 +1,630 @@
+# =======================================================================
+# KNOWLEDGEBASE .GITIGNORE
+# Git ignore rules for Knowledge Base System v2.0
+# =======================================================================
+
+# =======================================================================
+# ENVIRONMENT & SECRETS
+# =======================================================================
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+.env.*.local
+.environment
+
+# Secret files
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# Configuration files with sensitive data
+config/production/
+config/staging/
+config/secrets.yml
+config/database.yml
+
+# =======================================================================
+# PYTHON
+# =======================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+.idea/
+
+# =======================================================================
+# NODE.JS / JAVASCRIPT
+# =======================================================================
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# =======================================================================
+# DOCKER & CONTAINERS
+# =======================================================================
+
+# Docker override files
+docker-compose.override.yml
+docker-compose.override.yaml
+docker-compose.local.yml
+docker-compose.dev.yml
+
+# Docker build context
+.dockerignore
+
+# Container runtime files
+.container-*
+
+# =======================================================================
+# LOGS & MONITORING
+# =======================================================================
+
+# Application logs
+logs/
+*.log
+log/
+*.log.*
+
+# Rotated logs
+*.log.1
+*.log.2
+*.log.*.gz
+
+# System logs
+/var/log/
+syslog
+dmesg
+
+# Monitoring data
+monitoring/data/
+metrics/
+traces/
+
+# Profiling data
+*.prof
+*.pprof
+profile_*.html
+
+# =======================================================================
+# DATA & STORAGE
+# =======================================================================
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Data directories
+data/
+storage/
+uploads/
+downloads/
+
+# Vector databases
+qdrant_storage/
+embeddings_cache/
+
+# Document storage (keep structure but ignore content)
+docs/*/
+!docs/.gitkeep
+!docs/README.md
+
+# Backup files
+backups/
+*.backup
+*.bak
+*.dump
+*.sql.gz
+
+# Cache directories
+cache/
+.cache/
+tmp/
+temp/
+
+# =======================================================================
+# MACHINE LEARNING & AI
+# =======================================================================
+
+# Model files
+models/
+*.model
+*.pt
+*.pth
+*.onnx
+*.pkl
+*.joblib
+
+# Datasets
+datasets/
+*.csv
+*.tsv
+*.jsonl
+*.parquet
+
+# Training outputs
+runs/
+experiments/
+checkpoints/
+wandb/
+mlruns/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Tensor data
+tensorboard_logs/
+tf_logs/
+
+# CUDA cache
+.nv/
+
+# Hugging Face cache
+.cache/huggingface/
+transformers_cache/
+
+# =======================================================================
+# SYSTEM FILES
+# =======================================================================
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Windows
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# =======================================================================
+# IDE & EDITORS
+# =======================================================================
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.history/
+*.vsix
+
+# IntelliJ / PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+*.swp
+*.swo
+*~
+.vimrc.local
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Nano
+*.save
+*.swp
+
+# =======================================================================
+# BUILD ARTIFACTS
+# =======================================================================
+
+# Build outputs
+build/
+dist/
+out/
+target/
+bin/
+obj/
+
+# Package files
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+
+# Compiled files
+*.o
+*.lo
+*.la
+*.al
+.libs
+*.so.*
+*.a
+*.pyc
+*.pyo
+
+# =======================================================================
+# TESTING & CI/CD
+# =======================================================================
+
+# Test results
+test-results/
+coverage-report/
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# CI/CD artifacts
+.github/workflows/secrets.yml
+artifacts/
+reports/
+
+# Benchmark results
+benchmark_results/
+performance_tests/
+
+# =======================================================================
+# DOCUMENTATION
+# =======================================================================
+
+# Generated documentation
+site/
+_site/
+docs/_build/
+docs/build/
+.sphinx_build/
+
+# Documentation dependencies
+docs/node_modules/
+
+# =======================================================================
+# DEPLOYMENT & INFRASTRUCTURE
+# =======================================================================
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+
+# Ansible
+*.retry
+.vault_pass
+
+# Kubernetes
+kustomization.yaml
+secrets.yaml
+
+# Helm
+charts/*.tgz
+
+# =======================================================================
+# TEMPORARY & RUNTIME
+# =======================================================================
+
+# Lock files (keep package-lock.json but ignore others)
+*.lock
+!package-lock.json
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+.runtime/
+
+# Socket files
+*.sock
+
+# =======================================================================
+# KNOWLEDGE BASE SPECIFIC
+# =======================================================================
+
+# Vector embeddings cache
+embeddings/
+vectors/
+.embeddings_cache/
+
+# Processed documents cache
+.document_cache/
+.processed/
+
+# Search indices
+indices/
+.index/
+
+# Configuration overrides
+config/local.yml
+config/development.yml
+config/production.local.yml
+
+# Custom processors
+processors/custom/
+plugins/local/
+
+# Analytics data
+analytics/
+stats/
+metrics.json
+
+# Migration files (keep structure)
+migrations/data/
+migrations/backup/
+
+# Performance profiling
+profiling/
+*.profile
+
+# Health check temporary files
+.health/
+health_*.tmp
+
+# =======================================================================
+# SPECIAL INCLUSIONS
+# =======================================================================
+
+# Force include important empty directories
+!docs/.gitkeep
+!data/.gitkeep
+!logs/.gitkeep
+!temp/.gitkeep
+!cache/.gitkeep
+!backups/.gitkeep
+
+# Keep important config templates
+!config/templates/
+!.env.example
+!docker-compose.yml
+!Dockerfile
+!requirements*.txt
+
+# Keep documentation
+!README.md
+!CHANGELOG.md
+!LICENSE
+!docs/*.md
+
+# Keep scripts
+!scripts/
+!Makefile
+
+# =======================================================================
+# FINAL OVERRIDES
+# =======================================================================
+
+# If you need to include something that's normally ignored
+# Prefix with ! (exclamation mark)
+# Example: !important_file.log
