@@ -1,0 +1,15 @@
+KB Search for Debian
+====================
+
+Quick Start:
+1. Configure: sudo nano /etc/kbsearch/.env
+2. Start: sudo systemctl start kbsearch
+3. Access: http://your-server-ip/
+
+Commands:
+- kb-setup: Main system management
+- kb-ingest-monitor: Document ingestion control
+
+Configuration: /etc/kbsearch/.env
+Data: /var/lib/kbsearch/
+Logs: /var/log/kbsearch/

@@ -7,189 +7,206 @@ const state = {
   offset: 0,
   total: 0,
   sort: 'relevance',
-  filters: {}, // es. { section: Set([...]), year: Set([...]) ... }
-  excludeSections: new Set(['Documentazione']) // default
+  filters: {},
+  excludeSections: new Set(['documentazione'])
 };
 
-function encodeFilters() {
-  // L'API accetta filters come JSON string (chiave -> array valori)
-  const obj = {};
-  for (const [k, set] of Object.entries(state.filters)) {
-    if (set.size) obj[k] = Array.from(set);
-  }
-  return Object.keys(obj).length ? JSON.stringify(obj) : '';
-}
-function encodeExclude() {
-  return JSON.stringify(Array.from(state.excludeSections));
-}
 function api(path, params={}) {
   const qs = new URLSearchParams(params);
   return fetch(`/api${path}?${qs.toString()}`, { credentials: 'same-origin' })
     .then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
       return r.json();
     });
 }
+
 function renderFacets(data) {
-  // data es.: { section: {Documentazione: 123, OffertaTecnica: 456}, year: {...}, ...}
-  const fill = (facetName) => {
-    const box = $(`.facet-list[data-facet="${facetName}"]`);
+  console.log('Facets data received:', data);
+  
+  const fieldMapping = {
+    'sezione': 'sezione',
+    'anno': 'anno', 
+    'cliente': 'cliente',
+    'ambito': 'ambito',
+    'kb_area': 'kb_area',
+    'livello': 'livello',
+    'oda_code': 'oda_code',
+    'as_code': 'as_code'
+  };
+
+  const strongFacets = data?.strong || {};
+  
+  Object.entries(fieldMapping).forEach(([uiField, apiField]) => {
+    const box = $(`.facet-sec[data-key="${uiField}"] .facet-list`);
     if (!box) return;
+    
     box.innerHTML = '';
-    const buckets = data[facetName] || {};
-    const active = state.filters[facetName] || new Set();
-    Object.entries(buckets)
-      .sort((a,b)=> String(a[0]).localeCompare(String(b[0]), 'it'))
-      .forEach(([val, count]) => {
-        const pill = document.createElement('button');
-        pill.className = 'facet-pill';
-        pill.dataset.active = active.has(val) ? 'true' : 'false';
-        pill.innerHTML = `<span>${val}</span><small>(${count})</small>`;
-        pill.onclick = () => {
-          const set = state.filters[facetName] ||= new Set();
-          if (set.has(val)) set.delete(val); else set.add(val);
-          pill.dataset.active = set.has(val) ? 'true' : 'false';
-        };
-        box.appendChild(pill);
-      });
-  };
-  ['section','year','client','ambito','oda_code','as_code','tags'].forEach(fill);
-}
-
-function badge(text) {
-  const b = document.createElement('span');
-  b.className = 'badge'; b.textContent = text;
-  return b;
-}
-function htmlesc(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
-function highlight(text, q){
-  if (!text) return '';
-  const words = (q||'').split(/\s+/).filter(w=>w.length>2);
-  let html = htmlesc(text);
-  for (const w of words) {
-    const re = new RegExp(`(${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,'ig');
-    html = html.replace(re, '<mark>$1</mark>');
-  }
-  return html;
-}
-function toDownloadURL(path){ return `/api/download?path=${encodeURIComponent(path)}` }
-function toPreviewURL(path){ return `/api/preview?path=${encodeURIComponent(path)}` }
-
-function renderResults(items, append=false){
-  const ul = $('#results');
-  const tpl = $('#tplResult');
-  if (!append) ul.innerHTML = '';
-  for (const it of items) {
-    const li = tpl.content.firstElementChild.cloneNode(true);
-    const title = it.title && it.title.trim() ? it.title : '(senza titolo)';
-    const path = it.path || it.filepath || it.source || '';
-    const isPDF = /\.pdf$/i.test(path);
-
-    // titolo -> anteprima se PDF, altrimenti download
-    const aTitle = $('.title', li);
-    aTitle.textContent = title;
-    aTitle.href = isPDF ? toPreviewURL(path) : toDownloadURL(path);
-
-    $('.path', li).textContent = path;
-    $('.score', li).textContent = (it.score!=null) ? `score ${it.score.toFixed(3)}` : '';
-
-    $('.snippet', li).innerHTML = highlight(it.snippet || it.content || '', state.q);
-
-    const badges = $('.badges', li);
-    const meta = it.meta || it.metadata || {};
-    const toBadge = ['section','year','client','ambito','oda_code','as_code'];
-    for (const key of toBadge) {
-      if (meta[key]) badges.appendChild(badge(`${key}:${meta[key]}`));
-    }
-    if (Array.isArray(meta.tags)) {
-      for (const t of meta.tags) badges.appendChild(badge(`#${t}`));
-    }
-
-    const aPrev = $('.actions .btn', li);
-    aPrev.textContent = isPDF ? 'Anteprima' : 'Apri';
-    aPrev.href = isPDF ? toPreviewURL(path) : toDownloadURL(path);
-
-    const aDl = $('.actions .btn.primary', li);
-    aDl.textContent = 'Download';
-    aDl.href = toDownloadURL(path);
-
-    ul.appendChild(li);
-  }
-}
-
-async function runSearch(opts={append:false}) {
-  $('#resultCount').textContent = 'Caricamento...';
-  const params = {
-    q: state.q,
-    limit: state.limit,
-    offset: state.offset,
-    sort: state.sort,
-    filters: encodeFilters(),
-    exclude_sections: encodeExclude(),
-  };
-  const [facets, results] = await Promise.all([
-    api('/facets', { q: state.q, filters: encodeFilters(), exclude_sections: encodeExclude() }),
-    api('/search', params)
-  ]);
-
-  renderFacets(facets || {});
-  renderResults(results?.items || results?.results || [], opts.append);
-
-  const total = results?.total ?? results?.count ?? (state.offset + (results?.items?.length||0));
-  state.total = total;
-  $('#resultCount').textContent = `${total} risultati`;
-  $('#loadMore').style.display = (state.offset + state.limit) < total ? 'inline-flex' : 'none';
-}
-
-function applyFiltersAndSearch() {
-  state.offset = 0;
-  runSearch({append:false}).catch(console.error);
-}
-
-function initUI(){
-  // Query iniziale
-  $('#q').value = state.q;
-
-  // Facet panel (mobile)
-  const pane = $('#facetPane');
-  $('#facetToggle').onclick = () => pane.dataset.open = 'true';
-  $('#facetClose').onclick = () => pane.dataset.open = 'false';
-
-  // Escludi Documentazione
-  const chk = $('#excludeDoc');
-  const updateExclude = () => {
-    if (chk.checked) state.excludeSections.add('Documentazione');
-    else state.excludeSections.delete('Documentazione');
-  };
-  chk.addEventListener('change', updateExclude);
-  updateExclude();
-
-  // Ordina
-  const sortSel = $('#sortSel');
-  sortSel.value = state.sort;
-  sortSel.onchange = () => { state.sort = sortSel.value; applyFiltersAndSearch(); };
-
-  // Cerca
-  $('#searchForm').addEventListener('submit', (e)=>{
-    e.preventDefault();
-    state.q = $('#q').value.trim();
-    state.offset = 0;
-    history.replaceState(null,'', `/?q=${encodeURIComponent(state.q)}`);
-    runSearch({append:false}).catch(console.error);
+    const buckets = strongFacets[apiField] || {};
+    const active = state.filters[uiField] || new Set();
+    
+    const sortedEntries = Object.entries(buckets).sort((a,b) => {
+      if (uiField === 'anno') {
+        return parseInt(a[0]) - parseInt(b[0]);
+      }
+      return String(a[0]).localeCompare(String(b[0]), 'it');
+    });
+    
+    sortedEntries.forEach(([val, count]) => {
+      if (!val || count === 0) return;
+      
+      const pill = document.createElement('button');
+      pill.className = 'chip';
+      pill.dataset.key = uiField;
+      pill.dataset.value = val;
+      pill.dataset.on = active.has(val) ? '1' : '0';
+      pill.innerHTML = `<span>${val}</span><span class="cnt">(${count})</span>`;
+      
+      pill.onclick = (e) => {
+        e.preventDefault();
+        toggleFacet(uiField, val);
+      };
+      
+      box.appendChild(pill);
+    });
   });
-
-  // Pulsanti faccette
-  $('#applyFilters').onclick = () => { pane.dataset.open = 'false'; applyFiltersAndSearch(); };
-  $('#resetFilters').onclick = () => { state.filters = {}; applyFiltersAndSearch(); };
-
-  // Paginazione
-  $('#loadMore').onclick = () => {
-    state.offset += state.limit;
-    runSearch({append:true}).catch(console.error);
-  };
-
-  // Prima ricerca (se c’è query, altrimenti carica faccette vuote)
-  runSearch({append:false}).catch(console.error);
 }
 
-document.addEventListener('DOMContentLoaded', initUI);
+function toggleFacet(key, value) {
+  const set = state.filters[key] ||= new Set();
+  if (set.has(value)) {
+    set.delete(value);
+    if (set.size === 0) delete state.filters[key];
+  } else {
+    set.add(value);
+  }
+  state.offset = 0;
+  performSearch();
+}
+
+function renderResults(items, append=false) {
+  const ul = $('#list');
+  if (!append) ul.innerHTML = '';
+  
+  if (!Array.isArray(items) || items.length === 0) {
+    if (!append) ul.innerHTML = '<div class="empty muted">Nessun risultato trovato.</div>';
+    return;
+  }
+  
+  items.forEach(hit => {
+    const resultDiv = document.createElement('div');
+    resultDiv.className = 'result';
+    
+    const title = hit.title || '(senza titolo)';
+    const pathRel = hit.path_rel || '';
+    const score = hit.score ? hit.score.toFixed(3) : 'N/A';
+    const snippet = hit.snippet || '';
+    
+    const metaTags = [];
+    ['sezione', 'cliente', 'anno', 'ambito', 'kb_area', 'livello'].forEach(field => {
+      if (hit[field]) {
+        metaTags.push(`<span class="tag"><b>${field}:</b> ${hit[field]}</span>`);
+      }
+    });
+    
+    resultDiv.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <h4><a href="/files/${encodeURIComponent(pathRel)}" target="_blank">${title}</a></h4>
+        <div class="meta">${metaTags.join(' ')}</div>
+        <div class="snippet">${snippet}</div>
+        <div class="path">${pathRel}</div>
+      </div>
+      <div class="score">score: <b>${score}</b></div>
+      <div class="open">
+        <a class="btn" href="/files/${encodeURIComponent(pathRel)}" target="_blank" rel="noopener">Apri</a>
+      </div>
+    `;
+    
+    ul.appendChild(resultDiv);
+  });
+}
+
+async function performSearch(append=false) {
+  if (state.fetching) return;
+  state.fetching = true;
+  
+  try {
+    $('#resinfo').textContent = 'Caricamento...';
+    
+    let queryWithFilters = state.q;
+    for (const [key, valueSet] of Object.entries(state.filters)) {
+      for (const value of valueSet) {
+        queryWithFilters += ` ${key}:${value}`;
+      }
+    }
+    
+    const searchParams = { q: queryWithFilters, k: state.limit };
+    const facetParams = { q: queryWithFilters, k: 200 };
+    
+    const [facetsData, searchData] = await Promise.all([
+      api('/facets', facetParams),
+      api('/search', searchParams)
+    ]);
+    
+    renderFacets(facetsData);
+    
+    const hits = searchData?.hits || [];
+    renderResults(hits, append);
+    
+    const total = hits.length;
+    state.total = total;
+    $('#resinfo').textContent = `${total} risultati`;
+    
+  } catch (error) {
+    console.error('Search error:', error);
+    $('#list').innerHTML = `<div class="error">Errore durante la ricerca: ${error.message}</div>`;
+  } finally {
+    state.fetching = false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const $q = $('#q');
+  const $go = $('#go');
+  const $clear = $('#clear');
+  const $excludeDoc = $('#excludeDoc');
+  const $reset = $('#reset');
+  
+  $go.addEventListener('click', () => {
+    state.q = $q.value.trim();
+    state.offset = 0;
+    performSearch();
+  });
+  
+  $q.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $go.click();
+    }
+  });
+  
+  $clear.addEventListener('click', () => {
+    $q.value = '';
+    state.q = '';
+    state.filters = {};
+    state.offset = 0;
+    performSearch();
+  });
+  
+  $reset.addEventListener('click', () => {
+    state.filters = {};
+    state.offset = 0;
+    performSearch();
+  });
+  
+  $excludeDoc.addEventListener('change', () => {
+    if ($excludeDoc.checked) {
+      state.excludeSections.add('documentazione');
+    } else {
+      state.excludeSections.delete('documentazione');
+    }
+    state.offset = 0;
+    performSearch();
+  });
+  
+  api('/facets', {}).then(renderFacets).catch(console.error);
+});

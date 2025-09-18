@@ -1,0 +1,20 @@
+[Unit]
+Description=KB Search Knowledge Base System
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+WorkingDirectory=/etc/kbsearch
+ExecStart=/usr/bin/docker compose up -d qdrant kb-api kb-ui caddy
+ExecStop=/usr/bin/docker compose down
+TimeoutStartSec=300
+TimeoutStopSec=120
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
