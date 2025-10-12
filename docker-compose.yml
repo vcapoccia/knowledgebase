@@ -2,10 +2,10 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_DB: kb         # << allineato al codice
-      POSTGRES_USER: kbuser
-      POSTGRES_PASSWORD: kbpass
-    ports: ["5432:5432"]
+      POSTGRES_DB: ${POSTGRES_DB:-kb}         # << allineato al codice
+      POSTGRES_USER: ${POSTGRES_USER:-kbuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kbpass}
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kbuser -d kb"]
       interval: 5s
@@ -17,9 +17,9 @@ services:
   meili:
     image: getmeili/meilisearch:v1.11.3
     environment:
-      MEILI_MASTER_KEY: change_me_meili_key
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-change_me_meili_key}
       MEILI_ENV: development
-    ports: ["7700:7700"]
+    ports: ["${MEILI_PORT:-7700}:7700"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:7700/health"]
       interval: 5s
@@ -28,7 +28,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:v1.9.1   # combacia con il client nel codice
-    ports: ["6333:6333"]
+    ports: ["${QDRANT_PORT:-6333}:6333"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:6333/collections"]
       interval: 5s
@@ -37,7 +37,7 @@ services:
 
   redis:
     image: redis:7
-    ports: ["6379:6379"]
+    ports: ["${REDIS_PORT:-6379}:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -52,23 +52,24 @@ services:
       REDIS_URL: redis://redis:6379/0
       RQ_QUEUE: kb_ingestion
       MEILI_URL: http://meili:7700
-      MEILI_KEY: change_me_meili_key
+      MEILI_KEY: ${MEILI_MASTER_KEY:-change_me_meili_key}
       QDRANT_URL: http://qdrant:6333
-      POSTGRES_DSN: postgres://kbuser:kbpass@postgres:5432/kb    # << allineato
-      KB_ROOT: /mnt/kb
+      # << allineato al codice
+      POSTGRES_DSN: postgres://${POSTGRES_USER:-kbuser}:${POSTGRES_PASSWORD:-kbpass}@postgres:5432/${POSTGRES_DB:-kb}
+      KB_ROOT: ${KB_CONTAINER_DIR:-/mnt/kb}
     depends_on:
       - postgres
       - meili
       - qdrant
       - redis
-    ports: ["8000:8000"]
+    ports: ["${API_PORT:-8000}:8000"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 5s
       timeout: 3s
       retries: 20
     volumes:
-      - /mnt/kb:/mnt/kb:ro
+      - ${KB_HOST_DIR:-/mnt/kb}:${KB_CONTAINER_DIR:-/mnt/kb}:ro
 
   worker:
     build:
@@ -78,10 +79,11 @@ services:
       REDIS_URL: redis://redis:6379/0
       RQ_QUEUE: kb_ingestion
       MEILI_URL: http://meili:7700
-      MEILI_KEY: change_me_meili_key
+      MEILI_KEY: ${MEILI_MASTER_KEY:-change_me_meili_key}
       QDRANT_URL: http://qdrant:6333
-      POSTGRES_DSN: postgres://kbuser:kbpass@postgres:5432/kb    # << allineato
-      KB_ROOT: /mnt/kb
+      # << allineato al codice
+      POSTGRES_DSN: postgres://${POSTGRES_USER:-kbuser}:${POSTGRES_PASSWORD:-kbpass}@postgres:5432/${POSTGRES_DB:-kb}
+      KB_ROOT: ${KB_CONTAINER_DIR:-/mnt/kb}
     depends_on:
       - postgres
       - meili
@@ -90,7 +92,7 @@ services:
     command: >
       bash -lc "rq worker -u ${REDIS_URL} ${RQ_QUEUE}"
     volumes:
-      - /mnt/kb:/mnt/kb:ro
+      - ${KB_HOST_DIR:-/mnt/kb}:${KB_CONTAINER_DIR:-/mnt/kb}:ro
 
 volumes:
   pgdata:
