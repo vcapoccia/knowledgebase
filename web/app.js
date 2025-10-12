@@ -6,7 +6,8 @@ let state = {
   per_page: 10,
   q: '',
   filters: {area:'', tipo:'', anno:''},
-  reduce_server: true
+  reduce_server: true,
+  mode: 'kw'
 };
 
 function clampPreview(txt, lines=3){
@@ -53,13 +54,16 @@ async function doSearch(resetPage=false){
   state.filters.tipo = $('#fltTipo').value || '';
   const an = ($('#fltAnno').value||'').trim();
   state.filters.anno = an ? parseInt(an,10) : '';
+  const modeInput = document.querySelector('input[name="mode"]:checked');
+  state.mode = modeInput ? modeInput.value : 'kw';
 
   const payload = {
     q: state.q,
     page: state.page,
     per_page: state.per_page,
     filters: state.filters,
-    reduce_server: $('#reduceServer').checked
+    reduce_server: $('#reduceServer').checked,
+    mode: state.mode
   };
 
   try{
@@ -80,11 +84,19 @@ async function doSearch(resetPage=false){
 $('#btnSearch').onclick = ()=> doSearch(true);
 $('#btnApply').onclick  = ()=> doSearch(true);
 $('#btnReset').onclick  = ()=>{
-  state = {page:1, per_page:10, q:'', filters:{area:'',tipo:'',anno:''}, reduce_server:true};
+  state = {page:1, per_page:10, q:'', filters:{area:'',tipo:'',anno:''}, reduce_server:true, mode:'kw'};
   $('#q').value=''; $('#fltArea').value=''; $('#fltTipo').value=''; $('#fltAnno').value='';
   $('#reduceServer').checked = true;
+  document.querySelectorAll('input[name="mode"]').forEach((el,idx)=> el.checked = idx===0);
   results.innerHTML = '<div class="empty">—</div>';
 };
+
+$('#q').addEventListener('keydown', (ev)=>{
+  if(ev.key === 'Enter'){
+    ev.preventDefault();
+    doSearch(true);
+  }
+});
 
 $('#prev').onclick = ()=>{ if(state.page>1){ state.page--; doSearch(false); } };
 $('#next').onclick = ()=>{ state.page++; doSearch(false); };
