@@ -1,0 +1,146 @@
+<!-- /app/frontend/templates/admin.html -->
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"/>
+  <title>KB Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="stylesheet" href="/static/style.css"/>
+  <style>
+    .panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:12px 0}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .row > *{flex:1}
+    .btn{background:#005E6D;color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
+    .btn.secondary{background:#2569B1}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .stat{min-width:120px;text-align:center;background:#F5F7F9;border-radius:10px;padding:10px}
+    details{border:1px dashed #e5e7eb;border-radius:10px;padding:10px;margin:8px 0;background:#fafafa}
+    summary{cursor:pointer;font-weight:600}
+    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;white-space:pre-wrap}
+    .tag{display:inline-block;background:#f0f7f7;border-radius:8px;padding:2px 8px;margin:2px;color:#005E6D;font-weight:600}
+    .ok{color:#019790}
+    .bad{color:#b42318}
+  </style>
+</head>
+<body class="container">
+  <h1>Admin</h1>
+
+  <div class="panel">
+    <h3>Configurazione</h3>
+    <div class="row">
+      <label>Root path
+        <input id="rootPath" type="text" style="width:100%"/>
+      </label>
+      <label style="max-width:220px;display:flex;gap:8px;align-items:center">
+        <input id="ocrEnabled" type="checkbox"/> OCR attivo
+      </label>
+      <button class="btn" onclick="saveConfig()">Salva config</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Ingestion</h3>
+    <div class="row">
+      <button class="btn" onclick="startIngestion('full')">Avvia FULL</button>
+      <button class="btn secondary" onclick="startIngestion('incremental')">Avvia INCREMENTAL</button>
+      <button class="btn" onclick="refresh()">Aggiorna</button>
+    </div>
+    <div id="stats" class="row" style="margin-top:12px"></div>
+    <small class="mono" id="etaTxt"></small>
+  </div>
+
+  <div class="panel">
+    <h3>Recenti falliti</h3>
+    <div id="failedList"></div>
+  </div>
+
+  <div class="panel">
+    <h3>Recenti processati</h3>
+    <div id="doneList"></div>
+  </div>
+
+  <div class="panel">
+    <h3>RQ</h3>
+    <div id="rqActive" class="mono"></div>
+    <details>
+      <summary>Failed RQ (ultimi 50)</summary>
+      <div id="rqFailed" class="mono"></div>
+    </details>
+  </div>
+
+<script>
+const $ = sel => document.querySelector(sel);
+
+async function loadConfig(){
+  const r = await fetch('/config'); const cfg = await r.json();
+  $('#rootPath').value = cfg.root_path || '/mnt/kb';
+  $('#ocrEnabled').checked = !!cfg.ocr_enabled;
+}
+
+async function saveConfig(){
+  const payload = {root_path: $('#rootPath').value, ocr_enabled: $('#ocrEnabled').checked};
+  const r = await fetch('/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+  if(r.ok){ alert('Config salvata'); }
+}
+
+async function startIngestion(mode){
+  const r = await fetch(`/ingestion/start?mode=${encodeURIComponent(mode)}`, {method:'POST'});
+  if(!r.ok){ alert('Errore avvio'); return; }
+  const data = await r.json();
+  alert(`Job avviato (${mode}). ID: ${data.job_id}`);
+  refresh();
+}
+
+function fmtSec(s){
+  if(!s || s<=0) return '-';
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = Math.floor(s%60);
+  return `${h}h ${m}m ${sec}s`;
+}
+
+async function refresh(){
+  // progress
+  const p = await (await fetch('/ingestion/progress')).json();
+  $('#stats').innerHTML = `
+    <div class="stat"><div>Totale</div><div><b>${p.total}</b></div></div>
+    <div class="stat"><div>Completati</div><div class="ok"><b>${p.done}</b></div></div>
+    <div class="stat"><div>Falliti</div><div class="bad"><b>${p.failed}</b></div></div>
+    <div class="stat"><div>In corso</div><div><b>${p.processing}</b></div></div>
+    <div class="stat"><div>Rimanenti</div><div><b>${p.remaining}</b></div></div>
+    <div class="stat"><div>Qdrant</div><div><b>${p.qdrant_points ?? '-'}</b></div></div>
+    <div class="stat"><div>Avanzamento</div><div><b>${p.percent}%</b></div></div>
+  `;
+  $('#etaTxt').textContent = `ETA: ${fmtSec(p.eta_seconds)} (avg/doc ${fmtSec(p.avg_seconds_per_doc)})`;
+
+  // failed recenti (collapsible)
+  const f = await (await fetch('/ingestion/failed?limit=20')).json();
+  $('#failedList').innerHTML = f.map(x => `
+    <details>
+      <summary><span class="tag">FAILED</span> ${x.path}</summary>
+      <div class="mono">When: ${x.when || '-'}\nError: ${x.error || '-'}</div>
+    </details>
+  `).join('');
+
+  // done recenti
+  const d = await (await fetch('/ingestion/recent_done?limit=20')).json();
+  $('#doneList').innerHTML = d.map(x => `
+    <details>
+      <summary><span class="tag">DONE</span> ${x.path}</summary>
+      <div class="mono">When: ${x.when || '-'}</div>
+    </details>
+  `).join('');
+
+  // rq
+  const ra = await (await fetch('/rq/active')).json();
+  $('#rqActive').textContent = JSON.stringify(ra, null, 2);
+
+  const rf = await (await fetch('/rq/failed')).json();
+  $('#rqFailed').textContent = JSON.stringify(rf, null, 2);
+}
+
+loadConfig().then(refresh);
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>

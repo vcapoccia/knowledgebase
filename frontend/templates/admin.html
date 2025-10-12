@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Amministrazione</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="/static/style.css" rel="stylesheet">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <img src="/static/ENG24-LOGO-ICON-DARK.svg" alt="Logo" class="logo">
+    <h1>Admin</h1>
+  </header>
+
+  <main class="container">
+    <section class="admin-actions">
+      <button id="btn-init" class="btn">Inizializza indici</button>
+      <button id="btn-ingest" class="btn primary">Avvia ingestion</button>
+      <span id="ingest-status" class="muted"></span>
+    </section>
+
+    <section class="cards">
+      <div class="card">
+        <h3>Queue</h3>
+        <div class="kvs">
+          <div><span>Nome</span><b id="q-name">-</b></div>
+          <div><span>Lunghezza</span><b id="q-count">0</b></div>
+          <div><span>Workers</span><b id="q-workers">0</b></div>
+          <div><span>In esecuzione</span><b id="q-started">0</b></div>
+          <div><span>Schedulati</span><b id="q-scheduled">0</b></div>
+          <div><span>Differiti</span><b id="q-deferred">0</b></div>
+          <div><span>Falliti</span><b id="q-failed">0</b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Stato</h3>
+        <pre id="health">...</pre>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Documenti falliti</h3>
+      <div id="failed-list" class="failed-list"></div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# tool esterni per estrazione/ocr + libmagic (fix ImportError)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    poppler-utils tesseract-ocr libreoffice \
+    libmagic1 && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir \
+    redis rq \
+    psycopg[binary] meilisearch qdrant-client==1.9.1 \
+    python-magic \
+    sentence-transformers \
+    pydantic \
+    pypdf python-docx python-pptx \
+    pillow pytesseract
+
+COPY worker/worker_tasks.py /app/worker_tasks.py

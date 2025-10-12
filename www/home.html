@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"/>
+  <title>DIOS Knowledge Base</title>
+  <link rel="stylesheet" href="/style.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+</head>
+<body>
+<header class="topbar">
+  <img src="/ENG24-LOGO-ICON-DARK.svg" class="logo" alt="logo"/>
+  <h1>DIOS Knowledge Base</h1>
+</header>
+
+<main class="container">
+  <section class="searchbox">
+    <input id="q" type="text" placeholder="Cerca..." />
+    <button id="btnSearch">Cerca</button>
+    <div class="mode">
+      <label><input type="radio" name="mode" value="kw" checked> Parole chiave</label>
+      <label><input type="radio" name="mode" value="sem"> Semantica</label>
+    </div>
+  </section>
+
+  <section class="filters">
+    <div>
+      <label>Area</label>
+      <select id="fltArea"><option value="">Tutte</option></select>
+    </div>
+    <div>
+      <label>Tipo</label>
+      <select id="fltTipo"><option value="">Tutti</option></select>
+    </div>
+    <div>
+      <label>Anno</label>
+      <input id="fltAnno" type="number" placeholder="es. 2024"/>
+    </div>
+    <div class="filters-actions">
+      <button id="btnApply">Applica</button>
+      <button id="btnReset" class="secondary">Reset</button>
+    </div>
+  </section>
+
+  <section id="hint" class="hint">
+    Suggerimento: combina parole chiave/semantica e rifinisci con le faccette.
+    L’opzione “riduci anche lato server” invia i filtri a Meili.
+    <label class="right"><input type="checkbox" id="reduceServer" checked/> riduci anche lato server</label>
+  </section>
+
+  <section id="results"></section>
+
+  <nav class="pager">
+    <button id="prev">← Precedente</button>
+    <button id="next">Successivo →</button>
+  </nav>
+
+  <footer class="footer">
+    <a href="/admin">Admin</a>
+  </footer>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+# worker/worker_tasks.py
+import os
+import json
+import subprocess
+from typing import Dict, Any, List
+
+import redis
+from redis import Redis
+
+import psycopg
+from psycopg.rows import dict_row
+
+import meilisearch
+
+# ===== ENV =====
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+RQ_QUEUE = os.getenv("RQ_QUEUE", "kb_ingestion")
+
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "postgres")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "kb")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "kbuser")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "kbpass")
+
+MEILI_URL = os.getenv("MEILI_URL", "http://meili:7700")
+MEILI_MASTER_KEY = os.getenv("MEILI_MASTER_KEY", os.getenv("MEILI_KEY", "change_me_meili_key"))
+
+KB_ROOT = os.getenv("KB_ROOT", "/mnt/kb")
+MEILI_INDEX = "kb_docs"
+
+Q_REDIS_KEY_PROGRESS = "kb:progress"
+Q_REDIS_KEY_FAILED   = "kb:failed_docs"
+
+# ===== Helpers =====
+def rconn() -> Redis:
+    return redis.from_url(REDIS_URL, decode_responses=True)
+
+def meili_client() -> meilisearch.Client:
+    return meilisearch.Client(MEILI_URL, MEILI_MASTER_KEY)
+
+def pg_conn():
+    dsn = f"host={POSTGRES_HOST} dbname={POSTGRES_DB} user={POSTGRES_USER} password={POSTGRES_PASSWORD}"
+    return psycopg.connect(dsn, autocommit=True, row_factory=dict_row)
+
+def ensure_pg_schema():
+    with pg_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS documents (
+            id TEXT PRIMARY KEY,
+            path TEXT NOT NULL,
+            title TEXT,
+            content TEXT,
+            mtime TIMESTAMP DEFAULT NOW()
+        );
+        """)
+
+def _push_failed(rc: Redis, item: Dict[str, Any]):
+    rc.lpush(Q_REDIS_KEY_FAILED, json.dumps(item))
+
+def _set_progress(rc: Redis, running: bool, done: int, total: int, stage: str):
+    rc.set(Q_REDIS_KEY_PROGRESS, json.dumps({
+        "running": running, "done": done, "total": total, "stage": stage
+    }))
+
+def _pdftotext(path: str) -> str:
+    out = subprocess.run(["pdftotext", "-layout", path, "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if out.returncode != 0:
+        raise RuntimeError(out.stderr.strip() or "pdftotext failed")
+    return out.stdout
+
+def _read_text(path: str) -> str:
+    ext = os.path.splitext(path)[1].lower()
+    if ext in (".txt", ".md", ".csv", ".log"):
+        with open(path, "r", errors="ignore") as f:
+            return f.read()
+    if ext == ".pdf":
+        return _pdftotext(path)
+    raise RuntimeError(f"unsupported extension: {ext}")
+
+def _collect_files(root: str) -> List[str]:
+    files = []
+    for base, _, names in os.walk(root):
+        for n in names:
+            if n.startswith("."):
+                continue
+            p = os.path.join(base, n)
+            if os.path.isfile(p):
+                files.append(p)
+    return files
+
+# ===== MAIN TASK =====
+def run_ingestion(params: Dict[str, Any]) -> Dict[str, Any]:
+    mode = (params or {}).get("mode", "full")
+    rc = rconn()
+    ensure_pg_schema()
+
+    all_files = _collect_files(KB_ROOT)
+    total = len(all_files)
+    done = 0
+
+    _set_progress(rc, True, 0, total, f"scanning ({mode})")
+
+    pg = pg_conn()
+    client = meili_client()
+
+    # assicurati che l'indice esista (senza usare get_raw_info)
+    try:
+        try:
+            client.get_index(MEILI_INDEX)
+        except meilisearch.errors.MeilisearchApiError:
+            client.create_index(MEILI_INDEX, {"primaryKey": "id"})
+    except Exception as e:
+        _push_failed(rc, {"stage": "meili-init", "error": str(e)})
+        _set_progress(rc, False, 0, 0, "failed")
+        return {"ok": False, "error": str(e)}
+
+    idx = client.index(MEILI_INDEX)
+    batch: List[Dict[str, Any]] = []
+
+    with pg, pg.cursor() as cur:
+        for path in all_files:
+            rel_id = os.path.relpath(path, KB_ROOT)
+            try:
+                text = _read_text(path)
+                title = os.path.basename(path)
+
+                cur.execute("""
+                    INSERT INTO documents (id, path, title, content)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (id) DO UPDATE
+                    SET path=EXCLUDED.path, title=EXCLUDED.title, content=EXCLUDED.content, mtime=NOW()
+                """, (rel_id, path, title, text))
+
+                batch.append({"id": rel_id, "path": path, "title": title, "content": text})
+
+            except Exception as e:
+                _push_failed(rc, {"path": path, "error": str(e)})
+
+            finally:
+                done += 1
+                if len(batch) >= 50:
+                    try:
+                        idx.add_documents(batch)
+                    except Exception as e:
+                        _push_failed(rc, {"batch": len(batch), "error": str(e)})
+                    batch = []
+                _set_progress(rc, True, done, total, "processing")
+
+        if batch:
+            try:
+                idx.add_documents(batch)
+            except Exception as e:
+                _push_failed(rc, {"batch": len(batch), "error": str(e)})
+
+    _set_progress(rc, False, total, total, "done")
+    return {"ok": True, "mode": mode, "total": total}

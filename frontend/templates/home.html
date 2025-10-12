@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Web app ricerca semantica</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="/static/style.css" rel="stylesheet">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <img src="/static/ENG24-LOGO-ICON-DARK.svg" alt="Logo" class="logo">
+    <h1>Ricerca documenti</h1>
+  </header>
+
+  <main class="container">
+    <section class="search-panel">
+      <input id="q" class="search-input" type="search" placeholder="Cerca...">
+      <button id="btn-search" class="btn primary">Cerca</button>
+    </section>
+
+    <section class="filters">
+      <div class="filter">
+        <label>Area</label>
+        <select id="f-area"><option value="">Tutte</option></select>
+      </div>
+      <div class="filter">
+        <label>Tipo</label>
+        <select id="f-tipo"><option value="">Tutti</option></select>
+      </div>
+      <div class="filter">
+        <label>Anno</label>
+        <input id="f-year" type="number" min="1900" max="2100" placeholder="es. 2024">
+      </div>
+      <div class="filter-actions">
+        <button id="btn-apply" class="btn">Applica</button>
+        <button id="btn-reset" class="btn ghost">Reset</button>
+      </div>
+    </section>
+
+    <section id="results"></section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "gara_doc_v1",
+    "enabled": true,
+    "priority": 100,
+    "scope": "path",
+    "sample": "2021_ClienteX/_Gare/01_Documentazione/SD1234_Capitolato_AS0456_v2.pdf",
+    "glob": ["**/_Gare/**", "**/*.pdf"],
+    "regex": "(?i)(?P<Anno>20\\d{2}).*?(?P<Cliente>[A-Za-zÀ-ÖØ-öø-ÿ0-9]+).*?(?:SD(?P<SD>\\d+))?.*?(?:AS(?P<AS_ID>\\d{3,5}))?.*?\\.(?P<Estensione>pdf)$",
+    "fields": {
+      "Anno": "Anno",
+      "Cliente": "Cliente",
+      "SD": "SD",
+      "AS_ID": "AS_ID",
+      "Estensione": "Estensione"
+    }
+  },
+  {
+    "id": "oda_v1",
+    "enabled": true,
+    "priority": 90,
+    "scope": "filename",
+    "sample": "ODA12345_ClienteY_Ordine.docx",
+    "glob": ["**/ODA*/**","**/*.docx","**/*.doc"],
+    "regex": "(?i)^ODA(?P<ODA_ID>\\d+)[_\\-](?P<ODA_Cliente>[A-Za-zÀ-ÖØ-öø-ÿ0-9]+).*\\.(?P<Estensione>docx|doc)$",
+    "fields": {
+      "ODA_ID": "ODA_ID",
+      "ODA_Cliente": "ODA_Cliente",
+      "Estensione": "Estensione"
+    }
+  }
+]

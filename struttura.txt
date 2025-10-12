@@ -1,0 +1,112 @@
+/opt/kbsearch
+├── ~
+├── api
+│   ├── appMonitor.py
+│   ├── config
+│   │   └── config.json
+│   ├── Dockerfile_api
+│   ├── frontend
+│   ├── kb_diagnostics.py
+│   ├── main.py
+│   ├── __pycache__
+│   │   ├── main.cpython-311.pyc
+│   │   ├── regex_rules_api.cpython-311.pyc
+│   │   └── worker_tasks.cpython-311.pyc
+│   ├── regex_rules_api.py
+│   ├── regex_rules.py
+│   ├── requirements.txt
+│   ├── route_admin.py
+│   ├── route_download.py
+│   └── worker_tasks.py
+├── app
+│   └── config
+│       └── config.json
+├── config
+│   ├── config.json
+│   ├── ingestion.yml
+│   ├── regex_rules.json
+│   └── regex.yml
+├── data
+│   ├── meili
+│   │   ├── data.ms
+│   │   └── dumps
+│   ├── meili.bad.1759007944
+│   │   ├── data.ms
+│   │   └── dumps
+│   ├── postgres
+│   │   ├── base
+│   │   ├── global
+│   │   ├── pg_commit_ts
+│   │   ├── pg_dynshmem
+│   │   ├── pg_hba.conf
+│   │   ├── pg_ident.conf
+│   │   ├── pg_logical
+│   │   ├── pg_multixact
+│   │   ├── pg_notify
+│   │   ├── pg_replslot
+│   │   ├── pg_serial
+│   │   ├── pg_snapshots
+│   │   ├── pg_stat
+│   │   ├── pg_stat_tmp
+│   │   ├── pg_subtrans
+│   │   ├── pg_tblspc
+│   │   ├── pg_twophase
+│   │   ├── PG_VERSION
+│   │   ├── pg_wal
+│   │   ├── pg_xact
+│   │   ├── postgresql.auto.conf
+│   │   ├── postgresql.conf
+│   │   └── postmaster.opts
+│   ├── qdrant
+│   │   ├── aliases
+│   │   ├── collections
+│   │   └── raft_state.json
+│   ├── qdrant.bad.1759007937
+│   │   ├── aliases
+│   │   ├── collections
+│   │   └── raft_state.json
+│   └── redis
+│       ├── appendonlydir
+│       └── dump.rdb
+├── docker
+│   ├── worker.Dockerfile
+│   └── worker-entrypoint.sh
+├── docker-compose.yml
+├── docker-compose.yml.bak
+├── frontend
+│   ├── static
+│   │   ├── app.js
+│   │   ├── ENG24-LOGO-ICON-DARK.svg
+│   │   └── style.css
+│   └── templates
+│       ├── admin.bak
+│       ├── admin.html
+│       └── home.html
+├── logs
+│   ├── init.log
+│   └── ocr
+├── Makefile
+├── redeploy.sh
+├── scripts
+│   ├── check_status.sh
+│   ├── cleanupTxt.sh
+│   ├── debugKB.sh
+│   ├── diag.sh
+│   ├── init.d
+│   │   ├── kbsearch
+│   │   └── kbsearch-ingest
+│   ├── kb_diagnostics.py
+│   ├── monitor_ingestion.sh
+│   ├── reindex.sh
+│   ├── restart_ingestion.sh
+│   ├── stopAllJobs.sh
+│   └── watch_ingestion.sh
+├── struttura.txt
+├── worker
+│   ├── Dockerfile_worker
+│   ├── logs
+│   ├── requirements.txt
+│   └── worker_tasks.py
+└── worker_tasks.py
+
+53 directories, 57 files

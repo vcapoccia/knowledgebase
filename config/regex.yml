@@ -1,0 +1,20 @@
+folder_patterns:
+  - name: aq_sd
+    pattern: "/KB_AQ/(?P<sd>SD\\d+)/"
+    metadata: { tipo: "AccordoQuadro", SD: "{sd}" }
+  - name: as_block
+    pattern: "/99_AS/(?P<as>AS\\d+_\\d+_[^/]+)/"
+    metadata: { tipo: "AppaltoSpecifico", AS: "{as}" }
+
+file_patterns:
+  - name: rdo_file
+    pattern: "(?i)RDO[_-](?P<rdo>\\d+)[_-](?P<cliente>[A-Z]{2,}_[A-Z]+)[_-](?P<tipo>OT|OA|Allegati)[_-]?.*?v(?P<versione>\\d+(?:\\.\\d+)?)"
+    metadata_map:
+      rdo: "RDO"
+      cliente: "Cliente"
+      tipo: { OT: "OffertaTecnica", OA: "OffertaAmministrativa" }
+      versione: "Versione"
+  - name: standard_buckets
+    pattern: "(?i)/(01_Documentazione|02_Chiarimenti|04_OffertaTecnica|08_AccessoAgliAtti)/"
+    metadata: { Bucket: "{1}" }
+

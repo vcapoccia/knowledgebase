@@ -1,0 +1,7 @@
+include_extensions: [".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".md"]
+exclude_globs: ["*/~$*", "*/tmp/*", "*/node_modules/*"]
+max_file_mb: 200
+ocr:
+  enabled: true
+  lang: "ita+eng"
+

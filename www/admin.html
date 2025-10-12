@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"/>
+  <title>Admin • KB Search</title>
+  <link rel="stylesheet" href="/style.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+</head>
+<body>
+<header class="topbar">
+  <h1>Admin <code>kb_ingestion</code></h1>
+  <div class="right">
+    <label><input type="checkbox" id="auto" checked/> Auto-refresh (5s)</label>
+    <button id="refresh">Aggiorna ora</button>
+    <a class="btn-link" href="/">Apri ricerca</a>
+  </div>
+</header>
+
+<main class="container">
+  <section class="toolbar">
+    <button id="startFull">Avvia FULL</button>
+    <button id="startInc">Avvia Incremental</button>
+    <button id="cancel" class="danger">Annulla corrente</button>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <h3>Stato ingestion</h3>
+      <div class="stats">
+        <div><span id="qCount">0</span><small>in coda</small></div>
+        <div><span id="qActive">0</span><small>attivi</small></div>
+        <div><span id="qFail">0</span><small>falliti</small></div>
+        <div><span id="pgDocs">–</span><small>PG docs</small></div>
+        <div><span id="meiliDocs">–</span><small>Meili docs</small></div>
+        <div><span id="qdrantPts">–</span><small>Qdrant</small></div>
+      </div>
+      <div class="eta">ETA <span id="eta">–</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Job correnti</h3>
+      <table id="tblJobs"><thead>
+        <tr><th>ID</th><th>Funzione</th><th>Meta (preview)</th><th>Enqueued/Started</th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Documento in lavorazione</h3>
+    <pre id="currentDoc">—</pre>
+  </section>
+
+  <section class="card">
+    <h3>Documenti / Job falliti (ultimi)</h3>
+    <table id="tblFailed"><thead>
+      <tr><th>Job/Doc</th><th>Eccezione (preview)</th><th>Enqueued/Ended</th></tr>
+    </thead><tbody></tbody></table>
+  </section>
+
+  <section class="card">
+    <h3>RQ Logs / Preview sessioni</h3>
+    <pre id="rqLogs">—</pre>
+  </section>
+</main>
+
+<script>
+const $ = (s)=>document.querySelector(s);
+
+function fmtDate(s){
+  if(!s) return "—";
+  try { return new Date(s).toLocaleString(); } catch{ return s }
+}
+
+async function refreshAll(){
+  // queue
+  const q = await fetch('/queue').then(r=>r.json()).catch(()=>({}));
+  $('#qCount').textContent = q.count ?? 0;
+  $('#qFail').textContent  = q.failed ?? 0;
+  $('#qActive').textContent= q.started_jobs ?? 0;
+
+  // progress
+  const p = await fetch('/progress').then(r=>r.json()).catch(()=>({}));
+  $('#pgDocs').textContent   = p.pg_documents ?? '—';
+  $('#meiliDocs').textContent= (p.meili?.numberOfDocuments) ?? '—';
+  $('#qdrantPts').textContent= (p.qdrant?.points_count) ?? '—';
+
+  // failed
+  const failed = await fetch('/failed_docs?limit=20').then(r=>r.json()).catch(()=>[]);
+  const tb = $('#tblFailed tbody'); tb.innerHTML="";
+  failed.forEach(f=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${f.job_id}</td><td>${(f.error||'').slice(0,160)}</td><td>${fmtDate(f.enqueued_at)} / ${fmtDate(f.ended_at)}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+$('#refresh').onclick = refreshAll;
+$('#startFull').onclick = ()=> fetch('/ingestion/start?mode=full',{method:'POST'}).then(refreshAll);
+$('#startInc').onclick = ()=> fetch('/ingestion/start?mode=incremental',{method:'POST'}).then(refreshAll);
+$('#cancel').onclick    = ()=> fetch('/ingestion/cancel_current',{method:'POST'}).then(refreshAll);
+
+let timer = setInterval(refreshAll, 5000);
+$('#auto').onchange = (e)=>{ if(e.target.checked){ timer=setInterval(refreshAll,5000)} else { clearInterval(timer)}}
+refreshAll();
+</script>
+</body>
+</html>

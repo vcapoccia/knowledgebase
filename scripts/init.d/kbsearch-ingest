@@ -1,0 +1,17 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          kbsearch-ingest
+# Required-Start:    kbsearch
+# Default-Start:
+# Default-Stop:
+# Short-Description: Trigger ingestion jobs
+### END INIT INFO
+API="http://127.0.0.1:8000"
+case "$1" in
+  scan)   curl -fsS -X POST "$API/ingestion/scan" || exit 1 ;;
+  start)  curl -fsS -X POST "$API/ingestion/start?mode=full" || exit 1 ;;
+  inc)    curl -fsS -X POST "$API/ingestion/start?mode=incremental" || exit 1 ;;
+  status) curl -fsS "$API/ingestion/status" || exit 1 ;;
+  *) echo "Usage: kbsearch-ingest {scan|start|inc|status}"; exit 1 ;;
+esac
+
