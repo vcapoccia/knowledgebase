@@ -1,3 +1,8 @@
+# Backup del file originale
+cp worker/worker_tasks.py worker/worker_tasks.py.backup
+
+# Crea nuovo file con supporto DOCX
+cat > worker/worker_tasks_NEW.py << 'ENDOFFILE'
 # worker/worker_tasks.py
 import os
 import json
@@ -11,7 +16,6 @@ import psycopg
 from psycopg.rows import dict_row
 
 import meilisearch
-from metadata_extractor import extract_metadata
 
 # ===== ENV =====
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
@@ -50,29 +54,8 @@ def ensure_pg_schema():
             path TEXT NOT NULL,
             title TEXT,
             content TEXT,
-            mtime TIMESTAMP DEFAULT NOW(),
-            
-            -- Metadati estratti
-            area TEXT,
-            anno TEXT,
-            cliente TEXT,
-            oggetto TEXT,
-            tipo_doc TEXT,
-            codice_appalto TEXT,
-            categoria TEXT,
-            descrizione_oggetto TEXT,
-            versione TEXT,
-            ext TEXT
+            mtime TIMESTAMP DEFAULT NOW()
         );
-        """)
-        
-        -- Indici per performance ricerca
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_area ON documents(area);")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_anno ON documents(anno);")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_cliente ON documents(cliente);")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_oggetto ON documents(oggetto);")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_tipo_doc ON documents(tipo_doc);")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_categoria ON documents(categoria);
         """)
 
 def _push_failed(rc: Redis, item: Dict[str, Any]):
@@ -230,60 +213,14 @@ def run_ingestion(params: Dict[str, Any]) -> Dict[str, Any]:
                 text = _read_text(path)
                 title = os.path.basename(path)
 
-                # Estrai metadati dal path
-                metadata = extract_metadata(path, KB_ROOT)
-                
                 cur.execute("""
-                    INSERT INTO documents (
-                        id, path, title, content, 
-                        area, anno, cliente, oggetto, tipo_doc, 
-                        codice_appalto, categoria, descrizione_oggetto, versione, ext
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (id) DO UPDATE SET
-                        path=EXCLUDED.path, 
-                        title=EXCLUDED.title, 
-                        content=EXCLUDED.content,
-                        area=EXCLUDED.area,
-                        anno=EXCLUDED.anno,
-                        cliente=EXCLUDED.cliente,
-                        oggetto=EXCLUDED.oggetto,
-                        tipo_doc=EXCLUDED.tipo_doc,
-                        codice_appalto=EXCLUDED.codice_appalto,
-                        categoria=EXCLUDED.categoria,
-                        descrizione_oggetto=EXCLUDED.descrizione_oggetto,
-                        versione=EXCLUDED.versione,
-                        ext=EXCLUDED.ext,
-                        mtime=NOW()
-                """, (
-                    rel_id, path, title, text,
-                    metadata.get('area'), 
-                    metadata.get('anno'),
-                    metadata.get('cliente'),
-                    metadata.get('oggetto'),
-                    metadata.get('tipo_doc'),
-                    metadata.get('codice_appalto'),
-                    metadata.get('categoria'),
-                    metadata.get('descrizione_oggetto'),
-                    metadata.get('versione'),
-                    metadata.get('ext')
-                ))
+                    INSERT INTO documents (id, path, title, content)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (id) DO UPDATE
+                    SET path=EXCLUDED.path, title=EXCLUDED.title, content=EXCLUDED.content, mtime=NOW()
+                """, (rel_id, path, title, text))
 
-                batch.append({
-                    "id": rel_id, 
-                    "path": path, 
-                    "title": title, 
-                    "content": text,
-                    "area": metadata.get('area'),
-                    "anno": metadata.get('anno'),
-                    "cliente": metadata.get('cliente'),
-                    "oggetto": metadata.get('oggetto'),
-                    "tipo_doc": metadata.get('tipo_doc'),
-                    "codice_appalto": metadata.get('codice_appalto'),
-                    "categoria": metadata.get('categoria'),
-                    "descrizione_oggetto": metadata.get('descrizione_oggetto'),
-                    "ext": metadata.get('ext')
-                })
+                batch.append({"id": rel_id, "path": path, "title": title, "content": text})
 
             except Exception as e:
                 _push_failed(rc, {"path": path, "error": str(e)})
@@ -306,3 +243,11 @@ def run_ingestion(params: Dict[str, Any]) -> Dict[str, Any]:
 
     _set_progress(rc, False, total, total, "done")
     return {"ok": True, "mode": mode, "total": total}
+ENDOFFILE
+
+# Verifica differenze
+echo "📊 Differenze tra vecchio e nuovo file:"
+diff -u worker/worker_tasks.py worker/worker_tasks_NEW.py | head -50
+
+# Se tutto ok, sostituisci
+mv worker/worker_tasks_NEW.py worker/worker_tasks.py

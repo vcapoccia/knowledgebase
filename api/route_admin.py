@@ -144,8 +144,66 @@ def ingestion_start(mode: str = Query("full")):
 # ===== Endpoints per la home =====
 @router.get("/filters")
 def filters():
-    return {"sources": [], "types": [], "years": []}
-
+    """
+    Estrae valori unici per TUTTI i filtri disponibili.
+    
+    Returns:
+        Dict con: areas, anni, clienti, oggetti, tipi_doc, categorie, extensions
+    """
+    try:
+        with pg_conn() as conn, conn.cursor() as cur:
+            # Aree
+            cur.execute("SELECT DISTINCT area FROM documents WHERE area IS NOT NULL ORDER BY area")
+            areas = [r['area'] for r in cur.fetchall()]
+            
+            # Anni
+            cur.execute("SELECT DISTINCT anno FROM documents WHERE anno IS NOT NULL ORDER BY anno DESC")
+            anni = [r['anno'] for r in cur.fetchall()]
+            
+            # Clienti (top 50 più frequenti)
+            cur.execute("""
+                SELECT cliente, COUNT(*) as cnt 
+                FROM documents 
+                WHERE cliente IS NOT NULL 
+                GROUP BY cliente 
+                ORDER BY cnt DESC, cliente 
+                LIMIT 50
+            """)
+            clienti = [r['cliente'] for r in cur.fetchall()]
+            
+            # Oggetti/Temi
+            cur.execute("SELECT DISTINCT oggetto FROM documents WHERE oggetto IS NOT NULL ORDER BY oggetto")
+            oggetti = [r['oggetto'] for r in cur.fetchall()]
+            
+            # Tipi Documento
+            cur.execute("SELECT DISTINCT tipo_doc FROM documents WHERE tipo_doc IS NOT NULL ORDER BY tipo_doc")
+            tipi_doc = [r['tipo_doc'] for r in cur.fetchall()]
+            
+            # Categorie
+            cur.execute("SELECT DISTINCT categoria FROM documents WHERE categoria IS NOT NULL ORDER BY categoria")
+            categorie = [r['categoria'] for r in cur.fetchall()]
+            
+            # Estensioni
+            cur.execute("SELECT DISTINCT ext FROM documents WHERE ext IS NOT NULL ORDER BY ext")
+            extensions = [r['ext'] for r in cur.fetchall()]
+            
+            return {
+                "areas": areas,
+                "anni": anni,
+                "clienti": clienti,
+                "oggetti": oggetti,
+                "tipi_doc": tipi_doc,
+                "categorie": categorie,
+                "extensions": extensions
+            }
+    except Exception as e:
+        import logging
+        logging.error(f"Errore in /filters: {e}")
+        return {
+            "areas": [], "anni": [], "clienti": [], "oggetti": [],
+            "tipi_doc": [], "categorie": [], "extensions": [],
+            "error": str(e)
+        }
 @router.post("/search")
 def search(payload: Dict[str, Any]):
     client = meili_client()

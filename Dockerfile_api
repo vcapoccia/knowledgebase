@@ -29,8 +29,7 @@ COPY api/route_admin.py /app/route_admin.py
 COPY api/route_download.py /app/route_download.py
 # (se alcuni non esistono, Docker build fallisce: in tal caso commenta la riga mancante)
 
-# copia asset web (UNA SOLA radice coerente—qui uso /web come root web)
-COPY web/ /app/web/
+COPY frontend /app/frontend
 
 EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host","0.0.0.0","--port","8000"]
