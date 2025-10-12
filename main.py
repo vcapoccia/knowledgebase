@@ -142,10 +142,15 @@ def init_indexes():
 
 @app.get("/filters")
 def filters():
-    # usato dalla home con faccette/filtri: restituisce shape vuota
-    return {"filters": []}
+    # usato dalla home con faccette/filtri: restituisce shape vuota compatibile
+    return {
+        "area": [],
+        "tipo": [],
+        "anno": [],
+        "extra": {"clienti": [], "oggetti": [], "categorie": [], "extensions": []}
+    }
 
 @app.post("/search")
 def search(body: Dict[str, Any]):
     # shape minima attesa dalla home
-    return {"results": [], "total": 0}
+    return {"hits": [], "total": 0, "page": body.get("page", 1), "per_page": body.get("per_page", 10)}

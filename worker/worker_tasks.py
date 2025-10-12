@@ -11,6 +11,10 @@ import psycopg
 from psycopg.rows import dict_row
 
 import meilisearch
+from sentence_transformers import SentenceTransformer
+from qdrant_client import QdrantClient
+from qdrant_client.http import models as qm
+
 from metadata_extractor import extract_metadata
 
 # ===== ENV =====
@@ -25,11 +29,21 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "kbpass")
 MEILI_URL = os.getenv("MEILI_URL", "http://meili:7700")
 MEILI_MASTER_KEY = os.getenv("MEILI_MASTER_KEY", os.getenv("MEILI_KEY", "change_me_meili_key"))
 
+QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "kb_chunks")
+
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+CHUNK_SIZE_CHARS = int(os.getenv("CHUNK_SIZE_CHARS", "1200"))
+CHUNK_OVERLAP_CHARS = int(os.getenv("CHUNK_OVERLAP_CHARS", "200"))
+
 KB_ROOT = os.getenv("KB_ROOT", "/mnt/kb")
 MEILI_INDEX = "kb_docs"
 
 Q_REDIS_KEY_PROGRESS = "kb:progress"
 Q_REDIS_KEY_FAILED   = "kb:failed_docs"
+
+_EMBEDDING_MODEL: SentenceTransformer | None = None
 
 # ===== Helpers =====
 def rconn() -> Redis:
@@ -38,9 +52,18 @@ def rconn() -> Redis:
 def meili_client() -> meilisearch.Client:
     return meilisearch.Client(MEILI_URL, MEILI_MASTER_KEY)
 
+def get_embedder() -> SentenceTransformer:
+    global _EMBEDDING_MODEL
+    if _EMBEDDING_MODEL is None:
+        _EMBEDDING_MODEL = SentenceTransformer(EMBEDDING_MODEL_NAME)
+    return _EMBEDDING_MODEL
+
 def pg_conn():
     dsn = f"host={POSTGRES_HOST} dbname={POSTGRES_DB} user={POSTGRES_USER} password={POSTGRES_PASSWORD}"
     return psycopg.connect(dsn, autocommit=True, row_factory=dict_row)
+
+def qdrant_client() -> QdrantClient:
+    return QdrantClient(QDRANT_URL, api_key=QDRANT_API_KEY, timeout=90, prefer_grpc=False)
 
 def ensure_pg_schema():
     with pg_conn() as conn, conn.cursor() as cur:
@@ -66,14 +89,13 @@ def ensure_pg_schema():
         );
         """)
         
-        -- Indici per performance ricerca
+        # Indici per performance ricerca
         cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_area ON documents(area);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_anno ON documents(anno);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_cliente ON documents(cliente);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_oggetto ON documents(oggetto);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_tipo_doc ON documents(tipo_doc);")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_categoria ON documents(categoria);
-        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_docs_categoria ON documents(categoria);")
 
 def _push_failed(rc: Redis, item: Dict[str, Any]):
     rc.lpush(Q_REDIS_KEY_FAILED, json.dumps(item))
@@ -183,6 +205,48 @@ def _libreoffice_convert(path: str) -> str:
             return f.read()
 
 
+def ensure_qdrant(vector_size: int) -> QdrantClient:
+    qc = qdrant_client()
+    try:
+        info = qc.get_collection(QDRANT_COLLECTION)
+        current = info.config.params.vectors.size if info and info.config and info.config.params else None
+        if current and current != vector_size:
+            qc.recreate_collection(
+                collection_name=QDRANT_COLLECTION,
+                vectors_config=qm.VectorParams(size=vector_size, distance=qm.Distance.COSINE),
+                on_disk_payload=True,
+            )
+    except Exception:
+        qc.recreate_collection(
+            collection_name=QDRANT_COLLECTION,
+            vectors_config=qm.VectorParams(size=vector_size, distance=qm.Distance.COSINE),
+            on_disk_payload=True,
+        )
+    return qc
+
+def _chunk_text(text: str, max_chars: int = CHUNK_SIZE_CHARS, overlap: int = CHUNK_OVERLAP_CHARS) -> List[str]:
+    cleaned = text.replace("\r\n", "\n").strip()
+    if not cleaned:
+        return []
+    chunks: List[str] = []
+    pos = 0
+    length = len(cleaned)
+    while pos < length:
+        end = min(length, pos + max_chars)
+        if end < length:
+            break_idx = cleaned.rfind("\n", pos + max_chars // 2, end)
+            if break_idx == -1:
+                break_idx = cleaned.rfind(" ", pos + max_chars // 2, end)
+            if break_idx > pos:
+                end = break_idx
+        chunk = cleaned[pos:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        if end >= length:
+            break
+        pos = max(end - overlap, 0)
+    return chunks
+
 def _collect_files(root: str) -> List[str]:
     files = []
     for base, _, names in os.walk(root):
@@ -222,6 +286,10 @@ def run_ingestion(params: Dict[str, Any]) -> Dict[str, Any]:
 
     idx = client.index(MEILI_INDEX)
     batch: List[Dict[str, Any]] = []
+    qdrant_points: List[qm.PointStruct] = []
+    embedder = get_embedder()
+    qc: QdrantClient | None = None
+    vector_size: int | None = None
 
     with pg, pg.cursor() as cur:
         for path in all_files:
@@ -232,11 +300,30 @@ def run_ingestion(params: Dict[str, Any]) -> Dict[str, Any]:
 
                 # Estrai metadati dal path
                 metadata = extract_metadata(path, KB_ROOT)
-                
+
+                chunks = _chunk_text(text)
+                if not chunks:
+                    raise RuntimeError("nessun testo estratto")
+
+                embeddings = embedder.encode(
+                    chunks,
+                    batch_size=8,
+                    convert_to_numpy=True,
+                    show_progress_bar=False,
+                )
+                if embeddings.size == 0:
+                    raise RuntimeError("embedding non generati")
+
+                if vector_size is None:
+                    vector_size = int(embeddings.shape[1])
+                    qc = ensure_qdrant(vector_size)
+                elif qc is None:
+                    qc = ensure_qdrant(vector_size)
+
                 cur.execute("""
                     INSERT INTO documents (
-                        id, path, title, content, 
-                        area, anno, cliente, oggetto, tipo_doc, 
+                        id, path, title, content,
+                        area, anno, cliente, oggetto, tipo_doc,
                         codice_appalto, categoria, descrizione_oggetto, versione, ext
                     )
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -269,11 +356,13 @@ def run_ingestion(params: Dict[str, Any]) -> Dict[str, Any]:
                     metadata.get('ext')
                 ))
 
+                preview = chunks[0][:500]
                 batch.append({
-                    "id": rel_id, 
-                    "path": path, 
-                    "title": title, 
+                    "id": rel_id,
+                    "path": path,
+                    "title": title,
                     "content": text,
+                    "preview": preview,
                     "area": metadata.get('area'),
                     "anno": metadata.get('anno'),
                     "cliente": metadata.get('cliente'),
@@ -284,6 +373,39 @@ def run_ingestion(params: Dict[str, Any]) -> Dict[str, Any]:
                     "descrizione_oggetto": metadata.get('descrizione_oggetto'),
                     "ext": metadata.get('ext')
                 })
+
+                if qc is not None:
+                    try:
+                        qc.delete(
+                            collection_name=QDRANT_COLLECTION,
+                            points_selector=qm.FilterSelector(
+                                filter=qm.Filter(
+                                    must=[qm.FieldCondition(key="doc_id", match=qm.MatchValue(value=rel_id))]
+                                )
+                            ),
+                        )
+                    except Exception as e:
+                        _push_failed(rc, {"stage": "qdrant-delete", "error": str(e), "doc": rel_id})
+
+                if qc is not None:
+                    for idx_chunk, (chunk_text, embedding) in enumerate(zip(chunks, embeddings), start=1):
+                        qdrant_points.append(
+                            qm.PointStruct(
+                                id=f"{rel_id}::{idx_chunk}",
+                                vector=embedding.tolist(),
+                                payload={
+                                    "doc_id": rel_id,
+                                    "chunk_id": idx_chunk,
+                                    "title": title,
+                                    "path": path,
+                                    "text": chunk_text,
+                                    "area": metadata.get('area'),
+                                    "anno": metadata.get('anno'),
+                                    "tipo_doc": metadata.get('tipo_doc'),
+                                    "ext": metadata.get('ext'),
+                                }
+                            )
+                        )
 
             except Exception as e:
                 _push_failed(rc, {"path": path, "error": str(e)})
@@ -296,6 +418,12 @@ def run_ingestion(params: Dict[str, Any]) -> Dict[str, Any]:
                     except Exception as e:
                         _push_failed(rc, {"batch": len(batch), "error": str(e)})
                     batch = []
+                if len(qdrant_points) >= 128 and qc is not None:
+                    try:
+                        qc.upsert(collection_name=QDRANT_COLLECTION, points=qdrant_points)
+                    except Exception as e:
+                        _push_failed(rc, {"stage": "qdrant-upsert", "error": str(e)})
+                    qdrant_points = []
                 _set_progress(rc, True, done, total, "processing")
 
         if batch:
@@ -304,5 +432,12 @@ def run_ingestion(params: Dict[str, Any]) -> Dict[str, Any]:
             except Exception as e:
                 _push_failed(rc, {"batch": len(batch), "error": str(e)})
 
+        if qdrant_points and qc is not None:
+            try:
+                qc.upsert(collection_name=QDRANT_COLLECTION, points=qdrant_points)
+            except Exception as e:
+                _push_failed(rc, {"stage": "qdrant-upsert", "error": str(e)})
+
     _set_progress(rc, False, total, total, "done")
     return {"ok": True, "mode": mode, "total": total}
+
