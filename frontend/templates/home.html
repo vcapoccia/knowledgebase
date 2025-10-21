@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Ricerca Knowledge Base</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="/static/style.css" rel="stylesheet">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <img src="/static/ENG24-LOGO-ICON-DARK.svg" alt="Logo" class="logo">
+    <h1>Ricerca Knowledge Base</h1>
+  </header>
+
+  <main class="container">
+    <!-- Barra di ricerca principale -->
+    <section class="search-panel">
+      <input id="q" class="search-input" type="search" placeholder="Cerca documenti..." autocomplete="off">
+      <button id="btn-search" class="btn primary">🔍 Cerca</button>
+    </section>
+
+    <!-- Toolbar Esclusione Rapida -->
+    <section class="quick-filters" style="display: none;" id="quick-filters">
+      <span class="quick-label">Escludi:</span>
+      <button class="quick-chip" data-category="Documentazione" id="q-doc">
+        <span>📋 Documentazione</span>
+      </button>
+      <button class="quick-chip" data-category="Chiarimenti" id="q-chiar">
+        <span>💬 Chiarimenti</span>
+      </button>
+      <button class="quick-chip" data-category="Accesso agli atti" id="q-atti">
+        <span>📂 Accesso agli atti</span>
+      </button>
+    </section>
+
+    <!-- Layout a 2 colonne: sidebar filtri + risultati -->
+    <div class="grid">
+      <!-- SIDEBAR: Faccette/Filtri -->
+      <aside class="sidebar card">
+        <div class="side-header">
+          <h3 class="side-title">Filtri</h3>
+          <button id="btn-reset-filters" class="btn ghost small">✕ Reset</button>
+        </div>
+        
+        <!-- Area -->
+        <div class="facet">
+          <h4>📁 Area</h4>
+          <div class="facet-chips" id="chips-area"></div>
+        </div>
+
+        <!-- Anno -->
+        <div class="facet">
+          <h4>📅 Anno</h4>
+          <div class="facet-chips" id="chips-anno"></div>
+        </div>
+
+        <!-- Cliente -->
+        <div class="facet">
+          <h4>👥 Cliente</h4>
+          <div class="facet-chips" id="chips-cliente"></div>
+        </div>
+
+        <!-- Oggetto -->
+        <div class="facet">
+          <h4>🎯 Oggetto</h4>
+          <div class="facet-chips" id="chips-oggetto"></div>
+        </div>
+
+        <!-- Tipo Documento -->
+        <div class="facet">
+          <h4>📄 Tipo Documento</h4>
+          <div class="facet-chips" id="chips-tipo"></div>
+        </div>
+
+        <!-- Categoria -->
+        <div class="facet">
+          <h4>🏷️ Categoria</h4>
+          <div class="facet-chips" id="chips-categoria"></div>
+        </div>
+
+        <!-- Estensione -->
+        <div class="facet">
+          <h4>📎 Formato</h4>
+          <div class="facet-chips" id="chips-ext"></div>
+        </div>
+      </aside>
+
+      <!-- RISULTATI -->
+      <section class="main-content">
+        <!-- Stats ricerca -->
+        <div id="search-stats" class="search-stats" style="display: none;">
+          <span id="total-results">0</span> risultati trovati
+          <span id="search-time" class="muted"></span>
+        </div>
+
+        <!-- Contenitore risultati -->
+        <div id="results" class="results">
+          <div class="hint card">
+            <p>👋 Benvenuto nella ricerca Knowledge Base!</p>
+            <p>Inserisci una parola chiave per iniziare la ricerca.</p>
+            <p>Usa i filtri laterali per affinare i risultati.</p>
+          </div>
+        </div>
+
+        <!-- Paginazione -->
+        <div id="pagination" class="pager" style="display: none;">
+          <button id="btn-prev" class="btn" disabled>← Precedente</button>
+          <span class="small" id="page-info">Pagina 1</span>
+          <button id="btn-next" class="btn" disabled>Successivo →</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="container">
+    <p class="muted small">Knowledge Base Search System v2.1</p>
+  </footer>
+</body>
+</html>

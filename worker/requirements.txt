@@ -1,0 +1,39 @@
+# worker requirements
+torch==2.1.2+cu118 ; platform_system=="Linux"
+torchvision==0.16.2+cu118 ; platform_system=="Linux"
+torchaudio==2.1.2+cu118 ; platform_system=="Linux"
+
+SQLAlchemy==2.0.36
+unstructured[all-docs]==0.15.12
+pyyaml==6.0.2
+
+textract==1.6.5
+pdfminer.six==20231228
+filetype==1.2.0
+
+
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+redis==5.0.7
+rq==1.16.2
+requests==2.32.3
+
+qdrant-client==1.9.2
+meilisearch==0.36.0
+
+psycopg==3.2.1
+
+python-magic==0.4.27
+pypdf==4.3.1
+python-docx==0.8.11
+python-pptx==0.6.23
+
+numpy>=1.26
+sentence-transformers==2.7.0
+
+# OCR (facoltativi; richiedono lib di sistema)
+pytesseract==0.3.13
+pdf2image==1.17.0
+Pillow==10.4.0

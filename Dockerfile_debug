@@ -1,0 +1,7 @@
+FROM python:3.10-slim
+WORKDIR /app
+COPY . /app/
+RUN ls -la /app/
+RUN wc -l /app/main.py
+RUN grep -c hostmonitor /app/main.py || echo 'hostmonitor: 0'
+CMD ["bash"]

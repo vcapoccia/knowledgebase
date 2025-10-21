@@ -1,0 +1,76 @@
+# ========================================
+# DATI SENSIBILI E DATABASE
+# ========================================
+data/
+*.db
+*.sqlite
+*.mdb
+
+# Password e secrets
+*.env
+.env*
+secrets/
+*.key
+*.pem
+
+# ========================================
+# PYTHON
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+venv/
+env/
+ENV/
+
+# ========================================
+# BACKUP E TEMPORANEI
+# ========================================
+*.backup
+*.backup_*
+*.bak
+*.old
+*.tmp
+*.log
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Script temporanei
+*_temp.sh
+*_test.sh
+cleanup_*.sh
+verify_*.sh
+diagnose_*.sh
+fix_*.sh
+emergency_*.sh
+nuclear_*.sh
+
+# ========================================
+# DOCKER
+# ========================================
+# Mantieni solo configurazioni, non volumi
+# data/ già escluso sopra
+
+# ========================================
+# IDE E EDITOR
+# ========================================
+.vscode/
+.idea/
+*.sublime-*
+.project
+.pydevproject
+
+# ========================================
+# DOCUMENTAZIONE TEMPORANEA
+# ========================================
+TODO.md
+NOTES.md
+.scratch/
+

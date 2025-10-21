@@ -1,0 +1,32 @@
+FROM python:3.10-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Dipendenze sistema + OCR
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    poppler-utils \
+    libreoffice \
+    tesseract-ocr \
+    tesseract-ocr-ita \
+    tesseract-ocr-eng \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 🎮 PyTorch con CUDA 12.1 (GPU)
+RUN pip install --no-cache-dir \
+    torch==2.1.0 \
+    torchvision==0.16.0 \
+    --index-url https://download.pytorch.org/whl/cu121
+
+# Requirements
+COPY requirements_worker.txt .
+RUN pip install --no-cache-dir -r requirements_worker.txt
+
+# Codice
+COPY worker/worker_tasks.py /app/worker_tasks.py
+
+# CMD
+CMD ["rq", "worker", "-u", "redis://redis:6379/0", "kb_ingestion"]

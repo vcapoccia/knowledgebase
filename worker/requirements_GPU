@@ -1,0 +1,48 @@
+# worker/requirements.txt - Worker con textract 1.6.3 e dipendenze esatte
+
+# PyTorch con CUDA 12.x
+torch==2.3.1
+torchvision==0.18.1
+torchaudio==2.3.1
+
+# ML & Embeddings
+sentence-transformers==3.0.1
+transformers==4.41.2
+numpy>=1.26.4
+
+# Database & Queue
+SQLAlchemy==2.0.36
+redis==5.0.7
+rq==1.16.2
+psycopg==3.2.1
+
+# Search Engines
+qdrant-client==1.9.2
+meilisearch==0.36.0
+
+# TEXTRACT 1.6.3 e sue dipendenze esatte
+textract==1.6.3
+pdfminer.six==20181108
+python-pptx==0.6.18
+python-docx==0.8.11
+
+# Altri document processing
+pypdf==4.3.1
+filetype==1.2.0
+python-magic==0.4.27
+
+# PDF Processing & Thumbnails
+PyMuPDF==1.24.5
+Pillow==10.4.0
+
+# OCR
+pytesseract==0.3.13
+pdf2image==1.17.0
+
+# API
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+requests==2.32.3
+
+# Utilities
+pyyaml==6.0.2
