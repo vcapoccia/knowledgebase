@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# dipendenze di base
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# librerie python
+RUN pip install --no-cache-dir \
+    fastapi uvicorn[standard] \
+    psycopg[binary] redis rq \
+    meilisearch qdrant-client \
+    pydantic python-dotenv \
+    sentence-transformers
+
+# codice
+COPY main.py /app/main.py
+COPY frontend/templates /app/frontend/templates
+# eventuali statici (se li usi)
+# COPY frontend/static /app/frontend/static
+COPY config /app/config
+
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

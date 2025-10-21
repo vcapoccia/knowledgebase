@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  api:
+    volumes:
+      - ./main.py:/app/main.py:ro
+      - ./frontend:/app/frontend:ro
+

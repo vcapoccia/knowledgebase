@@ -1,0 +1,32 @@
+# Worker Requirements - GPU Enabled
+
+# Core dependencies
+redis==5.0.0
+rq==1.15.1
+psycopg[binary]==3.1.12
+meilisearch==0.28.3
+
+# Qdrant
+qdrant-client==1.7.0
+
+# PyTorch con CUDA 12.1 support
+# Usa questo per GPU NVIDIA con CUDA 12.x
+torch==2.1.0+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
+
+# Oppure per CPU only (se non hai GPU):
+# torch==2.1.0
+
+# Sentence Transformers (embedding veloci)
+sentence-transformers==2.2.2
+
+# Document processing
+python-docx==1.1.0
+pytesseract==0.3.10
+pillow==10.0.0
+pdf2image==1.16.3
+
+# HTTP per Ollama
+requests==2.31.0
+
+# Logging e utils
+python-dateutil==2.8.2
