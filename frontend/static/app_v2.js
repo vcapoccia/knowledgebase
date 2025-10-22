@@ -1,4 +1,4 @@
-// frontend/static/app.js v2.1 - Con Paginazione + Faccette Dinamiche + Esclusioni
+// frontend/static/app.js v2.6 - FIX Toggle Sidebar
 const API_BASE = '';
 const RESULTS_PER_PAGE = 20;
 
@@ -12,10 +12,11 @@ let currentFilters = {
   categoria: '',
   ext: ''
 };
-let excludeFilters = new Set(); // Filtri da escludere
-let allResults = []; // Tutti i risultati caricati
+let excludeFilters = new Set();
+let allResults = [];
 let currentPage = 1;
 let totalPages = 1;
+let sidebarVisible = true; // Track stato sidebar
 
 // ===== Utility =====
 function escapeHtml(text) {
@@ -32,24 +33,28 @@ function fmtScore(score) {
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', () => {
-  // Carica faccette globali all'avvio
+  console.log('🚀 App v2.6 inizializzata');
+  
+  // Load stato sidebar da localStorage
+  const savedState = localStorage.getItem('sidebarVisible');
+  if (savedState !== null) {
+    sidebarVisible = savedState === 'true';
+    applySidebarState();
+  }
+  
   loadInitialFacets();
   
-  // Search handlers
   document.getElementById('btn-search')?.addEventListener('click', doSearch);
   document.getElementById('q')?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') doSearch();
   });
   
-  // Filter handlers
   document.getElementById('btn-apply')?.addEventListener('click', doSearch);
   document.getElementById('btn-reset')?.addEventListener('click', resetFilters);
   
-  // Pagination handlers
   document.getElementById('btn-prev')?.addEventListener('click', () => changePage(-1));
   document.getElementById('btn-next')?.addEventListener('click', () => changePage(1));
   
-  // Filter change listeners
   ['f-area', 'f-anno', 'f-cliente', 'f-oggetto', 'f-tipo', 'f-categoria', 'f-ext'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -59,18 +64,80 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   });
+  
+  // Toggle sidebar - UNICO HANDLER
+  const advancedToggle = document.getElementById('advanced-toggle');
+  if (advancedToggle) {
+    advancedToggle.addEventListener('click', toggleSidebar);
+  }
+  
+  const sidebarToggle = document.getElementById('btn-toggle-sidebar');
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', toggleSidebar);
+  }
 });
 
-// ===== Load Facets (Globali) =====
+// ===== Sidebar Toggle =====
+function toggleSidebar() {
+  sidebarVisible = !sidebarVisible;
+  applySidebarState();
+  
+  // Salva preferenza
+  localStorage.setItem('sidebarVisible', sidebarVisible);
+}
+
+function applySidebarState() {
+  const sidebar = document.getElementById('sidebar');
+  const content = document.querySelector('.content');
+  const advancedBtn = document.getElementById('advanced-toggle');
+  
+  if (!sidebar || !content) return;
+  
+  if (sidebarVisible) {
+    // Sidebar visibile
+    sidebar.classList.remove('collapsed');
+    content.classList.remove('expanded');
+    
+    if (advancedBtn) {
+      advancedBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        Nascondi Filtri
+      `;
+      advancedBtn.title = 'Nascondi pannello filtri';
+    }
+  } else {
+    // Sidebar nascosta
+    sidebar.classList.add('collapsed');
+    content.classList.add('expanded');
+    
+    if (advancedBtn) {
+      advancedBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="4" y1="21" x2="4" y2="14"></line>
+          <line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line>
+          <line x1="20" y1="12" x2="20" y2="3"></line>
+        </svg>
+        Mostra Filtri
+      `;
+      advancedBtn.title = 'Mostra pannello filtri';
+    }
+  }
+}
+
+// ===== Load Facets =====
 async function loadInitialFacets() {
   try {
     const response = await fetch(`${API_BASE}/facets`);
     if (!response.ok) return;
-    
     const data = await response.json();
-    updateFacets(data.facets || {});
+    updateFacets(data.facets || data || {});
   } catch (e) {
-    console.error('Errore caricamento faccette:', e);
+    console.error('Errore facets:', e);
   }
 }
 
@@ -79,14 +146,13 @@ async function doSearch() {
   const query = document.getElementById('q').value.trim();
   
   if (!query) {
-    showHint('⚠️ Inserisci una query di ricerca');
+    showHint('⚠️ Inserisci una query');
     return;
   }
   
   currentQuery = query;
-  currentPage = 1; // Reset a pagina 1
+  currentPage = 1;
   
-  // Build filters string (escludendo quelli esclusi)
   const filtersArray = [];
   for (const [key, value] of Object.entries(currentFilters)) {
     if (value && !excludeFilters.has(`${key}:${value}`)) {
@@ -96,10 +162,9 @@ async function doSearch() {
   
   const filtersStr = filtersArray.join(',');
   
-  // Build URL
   const params = new URLSearchParams({
     q_text: query,
-    top_k: 100 // Carica fino a 100 risultati
+    top_k: 100
   });
   
   if (filtersStr) {
@@ -109,45 +174,37 @@ async function doSearch() {
   try {
     showLoading();
     
-    // 1. Esegui ricerca
     const searchResponse = await fetch(`${API_BASE}/search?${params}`);
     if (!searchResponse.ok) {
       throw new Error(`HTTP ${searchResponse.status}`);
     }
     const searchData = await searchResponse.json();
     
-    // Salva tutti i risultati
-    allResults = searchData.hits || [];
+    allResults = searchData.hits || searchData || [];
     totalPages = Math.ceil(allResults.length / RESULTS_PER_PAGE);
     
-    // 2. Carica faccette DINAMICHE basate sui risultati
-    const facetsParams = new URLSearchParams({
-      q_text: query
-    });
-    if (filtersStr) {
-      facetsParams.append('filters', filtersStr);
-    }
-    
     try {
+      const facetsParams = new URLSearchParams({ q_text: query });
+      if (filtersStr) facetsParams.append('filters', filtersStr);
+      
       const facetsResponse = await fetch(`${API_BASE}/search_facets?${facetsParams}`);
       if (facetsResponse.ok) {
         const facetsData = await facetsResponse.json();
         updateFacets(facetsData.facets || {});
       }
     } catch (e) {
-      console.warn('Faccette dinamiche non disponibili, uso quelle globali');
+      console.warn('Faccette dinamiche non disponibili');
     }
     
-    // 3. Mostra prima pagina
     displayCurrentPage(searchData);
     
   } catch (err) {
     console.error('Errore ricerca:', err);
-    showError(`Errore durante la ricerca: ${err.message}`);
+    showError(`Errore: ${err.message}`);
   }
 }
 
-// ===== Update Facets (DINAMICO) =====
+// ===== Update Facets =====
 function updateFacets(facets) {
   populateSelect('f-area', facets.area || {});
   populateSelect('f-anno', facets.anno || {});
@@ -164,7 +221,6 @@ function populateSelect(selectId, facetData) {
   
   const currentValue = select.value;
   
-  // Mantieni solo l'opzione "Tutte/Tutti"
   while (select.options.length > 1) {
     select.remove(1);
   }
@@ -179,7 +235,7 @@ function populateSelect(selectId, facetData) {
   select.disabled = false;
   
   entries.forEach(([value, count]) => {
-    if (!value) return;
+    if (!value || value === 'null') return;
     
     const option = document.createElement('option');
     option.value = value;
@@ -187,7 +243,6 @@ function populateSelect(selectId, facetData) {
     select.appendChild(option);
   });
   
-  // Ripristina valore se ancora presente
   if (currentValue && facetData[currentValue]) {
     select.value = currentValue;
   }
@@ -196,11 +251,7 @@ function populateSelect(selectId, facetData) {
 // ===== Pagination =====
 function changePage(delta) {
   const newPage = currentPage + delta;
-  
-  if (newPage < 1 || newPage > totalPages) {
-    return;
-  }
-  
+  if (newPage < 1 || newPage > totalPages) return;
   currentPage = newPage;
   displayCurrentPage();
 }
@@ -215,39 +266,34 @@ function displayCurrentPage(searchData) {
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('btn-next');
   
-  // Update stats
   totalSpan.textContent = allResults.length;
   if (searchData && searchData.processing_time_ms) {
     timeSpan.textContent = `(${searchData.processing_time_ms}ms)`;
   }
   statsDiv.style.display = 'block';
   
-  // Clear results
   resultsDiv.innerHTML = '';
   
   if (allResults.length === 0) {
     resultsDiv.innerHTML = `
-      <div class="hint card">
-        <p>😕 Nessun risultato trovato per "<strong>${escapeHtml(currentQuery)}</strong>"</p>
-        <p>Prova a modificare i filtri o usare termini diversi.</p>
+      <div class="welcome-card">
+        <h2>😕 Nessun risultato</h2>
+        <p>Prova termini diversi o modifica i filtri.</p>
       </div>
     `;
     paginationDiv.style.display = 'none';
     return;
   }
   
-  // Calcola range risultati per pagina corrente
   const startIdx = (currentPage - 1) * RESULTS_PER_PAGE;
   const endIdx = Math.min(startIdx + RESULTS_PER_PAGE, allResults.length);
   const pageResults = allResults.slice(startIdx, endIdx);
   
-  // Render results
   pageResults.forEach(hit => {
     const card = createResultCard(hit);
     resultsDiv.appendChild(card);
   });
   
-  // Update pagination
   if (totalPages > 1) {
     paginationDiv.style.display = 'flex';
     pageInfo.textContent = `Pagina ${currentPage} di ${totalPages} (${startIdx + 1}-${endIdx} di ${allResults.length})`;
@@ -257,7 +303,6 @@ function displayCurrentPage(searchData) {
     paginationDiv.style.display = 'none';
   }
   
-  // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -266,11 +311,11 @@ function createResultCard(hit) {
   const article = document.createElement('article');
   article.className = 'hit';
   
-  const title = escapeHtml(hit.title || 'Documento');
+  const title = escapeHtml(hit.title || hit.filename || 'Documento');
   const score = hit.score != null ? fmtScore(hit.score) : '-';
-  const snippet = escapeHtml(hit.text || '').substring(0, 300);
+  const snippet = escapeHtml((hit.text || hit.text_content || '').substring(0, 300));
+  const filePath = hit.path || hit.file_path || '';
   
-  // Costruisci tag metadati CON OPZIONE ESCLUSIONE
   const tags = [];
   if (hit.area) tags.push(createBadgeWithExclude('area', hit.area, '📁'));
   if (hit.anno) tags.push(createBadgeWithExclude('anno', hit.anno, '📅'));
@@ -291,9 +336,31 @@ function createResultCard(hit) {
     ${snippet ? `<p class="snippet clamp-3">${snippet}...</p>` : ''}
     
     <div class="hit-actions">
-      ${hit.path ? `<span class="small muted">📂 ${escapeHtml(hit.path)}</span>` : ''}
+      <span class="small muted">📂 ${escapeHtml(filePath)}</span>
+      <div class="hit-buttons">
+        <button class="btn-action btn-download" data-path="${escapeHtml(filePath)}" title="Download">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Download
+        </button>
+        <button class="btn-action btn-copy" data-path="${escapeHtml(filePath)}" title="Copia">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+      </div>
     </div>
   `;
+  
+  const btnDownload = article.querySelector('.btn-download');
+  const btnCopy = article.querySelector('.btn-copy');
+  
+  btnDownload.addEventListener('click', () => downloadDocument(filePath));
+  btnCopy.addEventListener('click', () => copyPath(filePath));
   
   return article;
 }
@@ -301,7 +368,7 @@ function createResultCard(hit) {
 function createBadgeWithExclude(key, value, icon) {
   const isExcluded = excludeFilters.has(`${key}:${value}`);
   const excludeClass = isExcluded ? 'excluded' : '';
-  const excludeIcon = isExcluded ? '✕' : '—';
+  const excludeIcon = isExcluded ? '✓' : '−';
   const escapedValue = escapeHtml(value);
   
   return `
@@ -309,14 +376,39 @@ function createBadgeWithExclude(key, value, icon) {
       <span class="tag ${excludeClass}">${icon} ${escapedValue}</span>
       <button class="tag-exclude ${excludeClass}" 
               onclick="toggleExclude('${key}', '${escapedValue.replace(/'/g, "\\'")}' )" 
-              title="${isExcluded ? 'Rimuovi esclusione' : 'Escludi dai risultati'}">
+              title="${isExcluded ? 'Rimuovi esclusione' : 'Escludi'}">
         ${excludeIcon}
       </button>
     </span>
   `;
 }
 
-function toggleExclude(key, value) {
+// ===== Document Actions =====
+function downloadDocument(path) {
+  if (!path) {
+    alert('❌ Path non disponibile');
+    return;
+  }
+  
+  const url = `${API_BASE}/download_file?path=${encodeURIComponent(path)}`;
+  console.log('⬇️ Download:', url);
+  window.open(url, '_blank');
+}
+
+function copyPath(path) {
+  if (!path) {
+    alert('❌ Path non disponibile');
+    return;
+  }
+  
+  navigator.clipboard.writeText(path).then(() => {
+    alert('✅ Percorso copiato:\n' + path);
+  }).catch(() => {
+    alert('❌ Errore copia');
+  });
+}
+
+window.toggleExclude = function(key, value) {
   const filterKey = `${key}:${value}`;
   
   if (excludeFilters.has(filterKey)) {
@@ -325,36 +417,31 @@ function toggleExclude(key, value) {
     excludeFilters.add(filterKey);
   }
   
-  // Rilancia ricerca con nuovi filtri
   doSearch();
-}
+};
 
 // ===== UI States =====
 function showLoading() {
-  const resultsDiv = document.getElementById('results');
-  resultsDiv.innerHTML = `
-    <div class="hint card">
-      <p>🔍 Ricerca in corso...</p>
+  document.getElementById('results').innerHTML = `
+    <div class="welcome-card">
+      <h2>🔍 Ricerca in corso...</h2>
     </div>
   `;
   document.getElementById('pagination').style.display = 'none';
 }
 
 function showHint(message) {
-  const resultsDiv = document.getElementById('results');
-  resultsDiv.innerHTML = `
-    <div class="hint card">
-      <p>${message}</p>
-    </div>
+  document.getElementById('results').innerHTML = `
+    <div class="welcome-card"><p>${message}</p></div>
   `;
   document.getElementById('pagination').style.display = 'none';
 }
 
 function showError(message) {
-  const resultsDiv = document.getElementById('results');
-  resultsDiv.innerHTML = `
-    <div class="hint card">
-      <p class="error">❌ ${message}</p>
+  document.getElementById('results').innerHTML = `
+    <div class="welcome-card">
+      <h2>❌ Errore</h2>
+      <p class="error">${message}</p>
     </div>
   `;
   document.getElementById('pagination').style.display = 'none';
@@ -362,13 +449,11 @@ function showError(message) {
 
 // ===== Reset =====
 function resetFilters() {
-  // Reset select values
   ['f-area', 'f-anno', 'f-cliente', 'f-oggetto', 'f-tipo', 'f-categoria', 'f-ext'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
   
-  // Reset filters object
   currentFilters = {
     area: '',
     anno: '',
@@ -379,31 +464,23 @@ function resetFilters() {
     ext: ''
   };
   
-  // Reset esclusioni
   excludeFilters.clear();
-  
-  // Reset risultati
   allResults = [];
   currentPage = 1;
   totalPages = 1;
   
-  // Clear search
   document.getElementById('q').value = '';
   currentQuery = '';
   
-  // Reset UI
-  const resultsDiv = document.getElementById('results');
-  resultsDiv.innerHTML = `
-    <div class="hint card">
-      <p>👋 Benvenuto nella ricerca Knowledge Base!</p>
-      <p>Inserisci una parola chiave per iniziare la ricerca.</p>
-      <p>Usa i filtri laterali per affinare i risultati.</p>
+  document.getElementById('results').innerHTML = `
+    <div class="welcome-card">
+      <h2>👋 Benvenuto!</h2>
+      <p>Inserisci una query per iniziare.</p>
     </div>
   `;
   
   document.getElementById('search-stats').style.display = 'none';
   document.getElementById('pagination').style.display = 'none';
   
-  // Ricarica faccette globali
   loadInitialFacets();
 }

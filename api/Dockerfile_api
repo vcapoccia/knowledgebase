@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir \
 
 # codice
 COPY main.py /app/main.py
+COPY improve_search.py /app/improve_search.py
 COPY frontend/templates /app/frontend/templates
 # eventuali statici (se li usi)
 # COPY frontend/static /app/frontend/static

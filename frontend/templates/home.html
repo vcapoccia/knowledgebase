@@ -1,120 +1,219 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <title>Ricerca Knowledge Base</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link href="/static/style.css" rel="stylesheet">
-  <script defer src="/static/app.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Base</title>
+    <link rel="stylesheet" href="/static/style_v2.css">
 </head>
 <body>
-  <header class="topbar">
-    <img src="/static/ENG24-LOGO-ICON-DARK.svg" alt="Logo" class="logo">
-    <h1>Ricerca Knowledge Base</h1>
-  </header>
-
-  <main class="container">
-    <!-- Barra di ricerca principale -->
-    <section class="search-panel">
-      <input id="q" class="search-input" type="search" placeholder="Cerca documenti..." autocomplete="off">
-      <button id="btn-search" class="btn primary">🔍 Cerca</button>
-    </section>
-
-    <!-- Toolbar Esclusione Rapida -->
-    <section class="quick-filters" style="display: none;" id="quick-filters">
-      <span class="quick-label">Escludi:</span>
-      <button class="quick-chip" data-category="Documentazione" id="q-doc">
-        <span>📋 Documentazione</span>
-      </button>
-      <button class="quick-chip" data-category="Chiarimenti" id="q-chiar">
-        <span>💬 Chiarimenti</span>
-      </button>
-      <button class="quick-chip" data-category="Accesso agli atti" id="q-atti">
-        <span>📂 Accesso agli atti</span>
-      </button>
-    </section>
-
-    <!-- Layout a 2 colonne: sidebar filtri + risultati -->
-    <div class="grid">
-      <!-- SIDEBAR: Faccette/Filtri -->
-      <aside class="sidebar card">
-        <div class="side-header">
-          <h3 class="side-title">Filtri</h3>
-          <button id="btn-reset-filters" class="btn ghost small">✕ Reset</button>
-        </div>
+    <div class="container">
         
-        <!-- Area -->
-        <div class="facet">
-          <h4>📁 Area</h4>
-          <div class="facet-chips" id="chips-area"></div>
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+                <h1>Knowledge Base</h1>
+            </div>
+            <p class="subtitle">Cerca tra 14.000+ documenti tecnici</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-layout">
+            
+            <!-- Sidebar Filters -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <h3>🎛️ Filtri</h3>
+                    <button class="btn-icon" id="btn-toggle-sidebar" title="Nascondi filtri">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="filter-group">
+                    <label for="f-area">📁 Area</label>
+                    <select id="f-area">
+                        <option value="">Tutte</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="f-anno">📅 Anno</label>
+                    <select id="f-anno">
+                        <option value="">Tutti</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="f-cliente">👥 Cliente</label>
+                    <select id="f-cliente">
+                        <option value="">Tutti</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="f-oggetto">🎯 Oggetto</label>
+                    <select id="f-oggetto">
+                        <option value="">Tutti</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="f-tipo">📄 Tipo Documento</label>
+                    <select id="f-tipo">
+                        <option value="">Tutti</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="f-categoria">🏷️ Categoria</label>
+                    <select id="f-categoria">
+                        <option value="">Tutte</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="f-ext">📎 Estensione</label>
+                    <select id="f-ext">
+                        <option value="">Tutte</option>
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button class="btn btn-primary" id="btn-apply">Applica</button>
+                    <button class="btn btn-secondary" id="btn-reset">Reset</button>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="content">
+                
+                <!-- Search Box -->
+                <div class="search-section">
+                    <div class="search-box">
+                        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <input 
+                            type="text" 
+                            id="q" 
+                            placeholder="Cerca documenti, progetti, gare..."
+                            autocomplete="off"
+                        >
+                        <button class="btn-search" id="btn-search">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Search Mode -->
+                    <div class="search-mode">
+                        <label class="mode-option">
+                            <input type="radio" name="mode" value="hybrid" checked>
+                            <span>
+                                <strong>Hybrid</strong>
+                                <small>Semantica + Metadati</small>
+                            </span>
+                        </label>
+                        <label class="mode-option">
+                            <input type="radio" name="mode" value="semantic">
+                            <span>
+                                <strong>Semantica Pura</strong>
+                                <small>
+                                    <select id="model">
+                                        <option value="sentence-transformer">Sentence Transformer</option>
+                                        <option value="llama3">LLaMA 3</option>
+                                        <option value="mistral">Mistral</option>
+                                    </select>
+                                </small>
+                            </span>
+                        </label>
+                    </div>
+
+                    <!-- Suggestions -->
+                    <div class="suggestions">
+                        <span class="suggestions-label">💡 Prova con:</span>
+                        <button class="suggestion-pill" onclick="searchSuggestion('architettura cloud multitenant')">architettura cloud multitenant</button>
+                        <button class="suggestion-pill" onclick="searchSuggestion('telemedicina asincrona')">telemedicina asincrona</button>
+                        <button class="suggestion-pill" onclick="searchSuggestion('gare sanitarie 2024')">gare sanitarie 2024</button>
+                        <button class="suggestion-pill" onclick="searchSuggestion('cartella clinica elettronica')">cartella clinica elettronica</button>
+                        <button class="suggestion-pill" onclick="searchSuggestion('specifiche tecniche ARIA')">specifiche tecniche ARIA</button>
+                    </div>
+
+                    <!-- Advanced Toggle -->
+                    <button class="advanced-toggle" id="advanced-toggle">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="4" y1="21" x2="4" y2="14"></line>
+                            <line x1="4" y1="10" x2="4" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12" y2="3"></line>
+                            <line x1="20" y1="21" x2="20" y2="16"></line>
+                            <line x1="20" y1="12" x2="20" y2="3"></line>
+                        </svg>
+                        Ricerca Avanzata
+                    </button>
+                </div>
+
+                <!-- Search Stats -->
+                <div class="search-stats" id="search-stats" style="display: none;">
+                    <strong id="total-results">0</strong> risultati 
+                    <span class="muted" id="search-time"></span>
+                </div>
+
+                <!-- Results -->
+                <div id="results">
+                    <div class="welcome-card">
+                        <h2>👋 Benvenuto nella Knowledge Base!</h2>
+                        <p>Inserisci una parola chiave per iniziare la ricerca.</p>
+                        <p>Usa i filtri laterali per affinare i risultati.</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination" style="display: none;">
+                    <button class="btn btn-secondary" id="btn-prev" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        Precedente
+                    </button>
+                    <span class="page-info" id="page-info"></span>
+                    <button class="btn btn-secondary" id="btn-next">
+                        Successiva
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+
+            </main>
+
         </div>
 
-        <!-- Anno -->
-        <div class="facet">
-          <h4>📅 Anno</h4>
-          <div class="facet-chips" id="chips-anno"></div>
-        </div>
-
-        <!-- Cliente -->
-        <div class="facet">
-          <h4>👥 Cliente</h4>
-          <div class="facet-chips" id="chips-cliente"></div>
-        </div>
-
-        <!-- Oggetto -->
-        <div class="facet">
-          <h4>🎯 Oggetto</h4>
-          <div class="facet-chips" id="chips-oggetto"></div>
-        </div>
-
-        <!-- Tipo Documento -->
-        <div class="facet">
-          <h4>📄 Tipo Documento</h4>
-          <div class="facet-chips" id="chips-tipo"></div>
-        </div>
-
-        <!-- Categoria -->
-        <div class="facet">
-          <h4>🏷️ Categoria</h4>
-          <div class="facet-chips" id="chips-categoria"></div>
-        </div>
-
-        <!-- Estensione -->
-        <div class="facet">
-          <h4>📎 Formato</h4>
-          <div class="facet-chips" id="chips-ext"></div>
-        </div>
-      </aside>
-
-      <!-- RISULTATI -->
-      <section class="main-content">
-        <!-- Stats ricerca -->
-        <div id="search-stats" class="search-stats" style="display: none;">
-          <span id="total-results">0</span> risultati trovati
-          <span id="search-time" class="muted"></span>
-        </div>
-
-        <!-- Contenitore risultati -->
-        <div id="results" class="results">
-          <div class="hint card">
-            <p>👋 Benvenuto nella ricerca Knowledge Base!</p>
-            <p>Inserisci una parola chiave per iniziare la ricerca.</p>
-            <p>Usa i filtri laterali per affinare i risultati.</p>
-          </div>
-        </div>
-
-        <!-- Paginazione -->
-        <div id="pagination" class="pager" style="display: none;">
-          <button id="btn-prev" class="btn" disabled>← Precedente</button>
-          <span class="small" id="page-info">Pagina 1</span>
-          <button id="btn-next" class="btn" disabled>Successivo →</button>
-        </div>
-      </section>
     </div>
-  </main>
 
-  <footer class="container">
-    <p class="muted small">Knowledge Base Search System v2.1</p>
-  </footer>
+    <script src="/static/app_v2.js"></script>
+    <script>
+        // Toggle sidebar
+        document.getElementById('btn-toggle-sidebar')?.addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.querySelector('.content');
+            sidebar.classList.toggle('collapsed');
+            content.classList.toggle('expanded');
+        });
+
+        // Search suggestion
+        function searchSuggestion(query) {
+            document.getElementById('q').value = query;
+            doSearch();
+        }
+    </script>
 </body>
 </html>
