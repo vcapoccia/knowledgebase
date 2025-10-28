@@ -16,7 +16,7 @@ import redis
 from redis import Redis
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import Filter, FieldCondition, MatchValue, VectorParams, Distance
 
 import meilisearch
 
@@ -26,9 +26,24 @@ from psycopg.rows import dict_row
 from rq import Queue
 from rq.job import Job
 
+# ===== IMPROVED SEARCH MODULE (v2.0) =====
+try:
+    import improve_search
+    from improve_search import (
+        extract_date_filter,
+        clean_query,
+        deduplicate_results,
+        apply_date_filter,
+        enhance_search_query
+    )
+    IMPROVED_SEARCH_AVAILABLE = True
+except ImportError as e:
+    IMPROVED_SEARCH_AVAILABLE = False
+    # Log sarà fatto dopo, quando log è definito
+
+
 # ===== ENV =====
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
-RQ_QUEUE = os.getenv("RQ_QUEUE", "kb_ingestion")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
 MEILI_URL = os.getenv("MEILI_URL", "http://meili:7700")
 MEILI_MASTER_KEY = os.getenv("MEILI_MASTER_KEY", "change_me_meili_key")
@@ -67,6 +82,12 @@ MODEL_CONFIGS = {
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("api")
+
+# Log improve_search status (ora log è definito)
+if not IMPROVED_SEARCH_AVAILABLE:
+    log.warning("⚠️  improve_search module not available")
+else:
+    log.info("✅ improve_search module loaded successfully")
 
 app = FastAPI(title="KB Search API", version="3.0.0")
 
@@ -191,14 +212,135 @@ async def api_health():
         "timestamp": datetime.now().isoformat()
     }
 
-# ===== Search =====
+# ===== Facets =====
+@app.get("/facets")
+@app.get("/api/facets")
+async def get_facets():
+    """
+    Ritorna valori univoci per ogni campo filtro con conteggi
+    """
+    try:
+        with pg_conn() as conn, conn.cursor() as cur:
+            facets = {}
+            
+            # Area
+            cur.execute("""
+                SELECT area, COUNT(*) as cnt 
+                FROM documents WHERE area IS NOT NULL 
+                GROUP BY area ORDER BY area
+            """)
+            facets["area"] = {row["area"]: row["cnt"] for row in cur.fetchall()}
+            
+            # Anno
+            cur.execute("""
+                SELECT anno, COUNT(*) as cnt 
+                FROM documents WHERE anno IS NOT NULL 
+                GROUP BY anno ORDER BY anno DESC
+            """)
+            facets["anno"] = {row["anno"]: row["cnt"] for row in cur.fetchall()}
+            
+            # Cliente
+            cur.execute("""
+                SELECT cliente, COUNT(*) as cnt 
+                FROM documents WHERE cliente IS NOT NULL 
+                GROUP BY cliente ORDER BY cliente
+            """)
+            facets["cliente"] = {row["cliente"]: row["cnt"] for row in cur.fetchall()}
+            
+            # Oggetto
+            cur.execute("""
+                SELECT oggetto, COUNT(*) as cnt 
+                FROM documents WHERE oggetto IS NOT NULL 
+                GROUP BY oggetto ORDER BY oggetto
+            """)
+            facets["oggetto"] = {row["oggetto"]: row["cnt"] for row in cur.fetchall()}
+            
+            # Tipo Doc
+            cur.execute("""
+                SELECT tipo_doc, COUNT(*) as cnt 
+                FROM documents WHERE tipo_doc IS NOT NULL 
+                GROUP BY tipo_doc ORDER BY tipo_doc
+            """)
+            facets["tipo_doc"] = {row["tipo_doc"]: row["cnt"] for row in cur.fetchall()}
+            
+            # Categoria
+            cur.execute("""
+                SELECT categoria, COUNT(*) as cnt 
+                FROM documents WHERE categoria IS NOT NULL 
+                GROUP BY categoria ORDER BY categoria
+            """)
+            facets["categoria"] = {row["categoria"]: row["cnt"] for row in cur.fetchall()}
+            
+            # Estensione
+            cur.execute("""
+                SELECT ext, COUNT(*) as cnt 
+                FROM documents WHERE ext IS NOT NULL 
+                GROUP BY ext ORDER BY ext
+            """)
+            facets["ext"] = {row["ext"]: row["cnt"] for row in cur.fetchall()}
+            
+            # ===== NUOVE FACCETTE (con conteggi) =====
+            
+            # SD Numero
+            cur.execute("""
+                SELECT sd_numero, COUNT(*) as cnt 
+                FROM documents WHERE sd_numero IS NOT NULL 
+                GROUP BY sd_numero ORDER BY sd_numero
+            """)
+            facets["sd_numero"] = {str(row["sd_numero"]): row["cnt"] for row in cur.fetchall()}
+            
+            # Lotto
+            cur.execute("""
+                SELECT lotto, COUNT(*) as cnt 
+                FROM documents WHERE lotto IS NOT NULL 
+                GROUP BY lotto ORDER BY lotto
+            """)
+            facets["lotto"] = {str(row["lotto"]): row["cnt"] for row in cur.fetchall()}
+            
+            # Progressivo ODA
+            cur.execute("""
+                SELECT progressivo_oda, COUNT(*) as cnt 
+                FROM documents WHERE progressivo_oda IS NOT NULL 
+                GROUP BY progressivo_oda ORDER BY progressivo_oda
+            """)
+            facets["progressivo_oda"] = {str(row["progressivo_oda"]): row["cnt"] for row in cur.fetchall()}
+            
+            # Progressivo AS
+            cur.execute("""
+                SELECT progressivo_as, COUNT(*) as cnt 
+                FROM documents WHERE progressivo_as IS NOT NULL 
+                GROUP BY progressivo_as ORDER BY progressivo_as
+            """)
+            facets["progressivo_as"] = {str(row["progressivo_as"]): row["cnt"] for row in cur.fetchall()}
+            
+            # Fase
+            cur.execute("""
+                SELECT fase, COUNT(*) as cnt 
+                FROM documents WHERE fase IS NOT NULL 
+                GROUP BY fase ORDER BY cnt DESC, fase
+            """)
+            facets["fase"] = {row["fase"]: row["cnt"] for row in cur.fetchall()}
+            
+            return {
+                "ok": True,
+                "facets": facets,
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    except Exception as e:
+        log.error(f"Errore facets: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/search")
 @app.get("/api/search")
 async def search(
     q_text: str = Query(..., description="Query di ricerca"),
     model: str = Query(DEFAULT_MODEL, description="Modello embedding da usare"),
     top_k: int = Query(20, ge=1, le=100, description="Numero risultati"),
-    filters: Optional[str] = Query(None, description="Filtri (es: area:AQ,anno:2023)")
+    filters: Optional[str] = Query(None, description="Filtri (es: area:AQ,anno:2023)"),
+    deduplicate: bool = Query(False, description="Rimuovi duplicati"),
+    smart_filter: bool = Query(True, description="Filtro temporale")
 ):
     """
     Ricerca semantica vettoriale su Qdrant con aggregazione per documento
@@ -284,9 +426,22 @@ async def search(
         # Prendi solo top_k documenti
         hits = unique_docs[:top_k]
         
+        # Enhancement
+        enhancement_meta = {}
+        if IMPROVED_SEARCH_AVAILABLE and (deduplicate or smart_filter):
+            try:
+                enhance_input = [{'filename': h.get('path','').split('/')[-1], 'path': h.get('path'), 'score': h.get('score',0), 'metadata': {'year': h.get('anno'), 'version': h.get('versione')}, **{k:v for k,v in h.items() if k!='metadata'}} for h in hits]
+                _, enhanced, meta = enhance_search_query(q_text, enhance_input, deduplicate, smart_filter)
+                hits = [{'id':r.get('id'), 'score':r.get('score'), 'title':r.get('title'), 'text':r.get('text'), 'path':r.get('path'), 'area':r.get('area'), 'anno':r.get('anno'), 'cliente':r.get('cliente'), 'oggetto':r.get('oggetto'), 'tipo_doc':r.get('tipo_doc'), 'categoria':r.get('categoria'), 'ext':r.get('ext'), 'chunk_id':r.get('chunk_id'), 'page_number':r.get('page_number'), 'versione':r.get('versione'), '_other_versions_count':r.get('_other_versions_count',0), '_all_versions':r.get('_all_versions',[])} for r in enhanced]
+                enhancement_meta = {'enhanced':True, 'clean_query':meta.get('clean_query'), 'date_filter':meta.get('date_filter'), 'date_filter_applied':meta.get('filtered_by_date',False), 'deduplicated':meta.get('deduplicated',False), 'removed_duplicates':meta.get('removed_duplicates',0)}
+                log.info(f"✨ Enhanced: dedup={deduplicate}, filter={smart_filter}, removed={meta.get('removed_duplicates',0)}")
+            except Exception as e:
+                log.error(f"Enhancement error: {e}")
+                enhancement_meta = {'enhanced':False, 'error':str(e)}
+        
         processing_time = (datetime.now() - start_time).total_seconds() * 1000
         
-        return {
+        response_dict = {
             "total": len(hits),
             "total_unique_docs": len(unique_docs),  # Quanti documenti unici trovati
             "total_chunks_searched": len(results),   # Quanti chunk esaminati
@@ -294,8 +449,11 @@ async def search(
             "processing_time_ms": round(processing_time, 2),
             "model": model,
             "collection": collection_name,
-            "search_method": "semantic"  # Aggiungo campo mancante
+            "search_method": "semantic"
         }
+        if enhancement_meta:
+            response_dict['enhancement'] = enhancement_meta
+        return response_dict
     
     except Exception as e:
         log.error(f"Errore ricerca: {e}")
@@ -659,7 +817,6 @@ async def get_thumbnail(
 
 # ===== Ingestion Management =====
 @app.post("/ingestion/start")
-@app.post("/ingestion/start")
 async def start_ingestion(
     model: str = Query(DEFAULT_MODEL, description="Modello da usare"),
     mode: str = Query("full", description="full o incremental")
@@ -672,9 +829,10 @@ async def start_ingestion(
         rc = rconn()
         q = Queue("kb_ingestion", connection=rc)
         
-        # Enqueue task usando string (NO import diretto)
+        # Importa il task
+        
         job = q.enqueue(
-            'worker_tasks.run_ingestion',  # String, non import!
+            'worker_tasks.run_ingestion',
             {"mode": mode, "model": model},
             job_timeout="24h",
             result_ttl=86400
@@ -881,208 +1039,6 @@ async def list_models():
     
     return {"models": models}
 
-
-# ===== Init Collections =====
-@app.post("/init_collections")
-async def init_collections():
-    """Inizializza tutte le collection Qdrant per i modelli disponibili"""
-    try:
-        qd = qdrant_client()
-        created = []
-        errors = []
-        
-        for model_type, config in MODEL_CONFIGS.items():
-            collection_name = f"{config['collection_prefix']}_docs"
-            
-            try:
-                # Verifica se esiste già
-                collections = qd.get_collections().collections
-                exists = any(c.name == collection_name for c in collections)
-                
-                if not exists:
-                    # Crea collection
-                    qd.create_collection(
-                        collection_name=collection_name,
-                        vectors_config=VectorParams(
-                            size=config["dimension"],
-                            distance=Distance.COSINE
-                        )
-                    )
-                    created.append(collection_name)
-                    log.info(f"✅ Collection creata: {collection_name}")
-                else:
-                    log.info(f"⚠️ Collection già esistente: {collection_name}")
-            
-            except Exception as e:
-                errors.append({"collection": collection_name, "error": str(e)})
-                log.error(f"❌ Errore creazione {collection_name}: {e}")
-        
-        return {
-            "ok": True,
-            "created": created,
-            "errors": errors,
-            "message": f"Inizializzate {len(created)} collections"
-        }
-    
-    except Exception as e:
-        log.error(f"Errore init_collections: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-# ===== SYSTEM MONITORING =====
-@app.get("/api/system_stats")
-async def get_system_stats():
-    """Statistiche sistema in real-time"""
-    import psutil
-    import shutil
-    from pathlib import Path
-    
-    stats = {}
-    
-    # CPU
-    try:
-        stats["cpu"] = {
-            "percent": psutil.cpu_percent(interval=0.1),
-            "count": psutil.cpu_count(),
-            "per_cpu": psutil.cpu_percent(interval=0.1, percpu=True)
-        }
-    except Exception as e:
-        stats["cpu"] = {"error": str(e)}
-    
-    # RAM
-    try:
-        mem = psutil.virtual_memory()
-        stats["memory"] = {
-            "total_gb": round(mem.total / (1024**3), 2),
-            "used_gb": round(mem.used / (1024**3), 2),
-            "available_gb": round(mem.available / (1024**3), 2),
-            "percent": mem.percent
-        }
-    except Exception as e:
-        stats["memory"] = {"error": str(e)}
-    
-    # GPU (nvidia-smi)
-    try:
-        import subprocess
-        result = subprocess.run(
-            ["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw",
-             "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=2
-        )
-        if result.returncode == 0:
-            gpu_data = result.stdout.strip().split(", ")
-            stats["gpu"] = {
-                "utilization_percent": int(gpu_data[0]) if gpu_data[0] != 'N/A' else 0,
-                "memory_used_mb": int(gpu_data[1]) if gpu_data[1] != 'N/A' else 0,
-                "memory_total_mb": int(gpu_data[2]) if gpu_data[2] != 'N/A' else 0,
-                "temperature_c": int(gpu_data[3]) if gpu_data[3] != 'N/A' else 0,
-                "power_draw_w": float(gpu_data[4]) if gpu_data[4] != 'N/A' else 0,
-                "memory_percent": round(int(gpu_data[1])/int(gpu_data[2])*100, 1) if gpu_data[2] != 'N/A' and int(gpu_data[2]) > 0 else 0
-            }
-        else:
-            stats["gpu"] = {"available": False, "message": "nvidia-smi non disponibile"}
-    except Exception as e:
-        stats["gpu"] = {"available": False, "error": str(e)}
-    
-    # DISK
-    try:
-        disk_usage = shutil.disk_usage("/")
-        stats["disk"] = {
-            "total_gb": round(disk_usage.total / (1024**3), 2),
-            "used_gb": round(disk_usage.used / (1024**3), 2),
-            "free_gb": round(disk_usage.free / (1024**3), 2),
-            "percent": round(disk_usage.used / disk_usage.total * 100, 1)
-        }
-        
-        # Disk KB directory
-        kb_path = Path(DOCS_BASE_PATH)
-        if kb_path.exists():
-            kb_size = sum(f.stat().st_size for f in kb_path.rglob('*') if f.is_file())
-            stats["disk"]["kb_size_gb"] = round(kb_size / (1024**3), 2)
-    except Exception as e:
-        stats["disk"] = {"error": str(e)}
-    
-    # DATABASES
-    try:
-        # PostgreSQL
-        with pg_conn() as conn, conn.cursor() as cur:
-            cur.execute("SELECT pg_database_size('kb') as size")
-            pg_size = cur.fetchone()["size"]
-            cur.execute("SELECT COUNT(*) as cnt FROM documents")
-            pg_docs = cur.fetchone()["cnt"]
-            stats["postgresql"] = {
-                "size_mb": round(pg_size / (1024**2), 2),
-                "documents": pg_docs
-            }
-    except Exception as e:
-        stats["postgresql"] = {"error": str(e)}
-    
-    try:
-        # Qdrant
-        qd = qdrant_client()
-        collections = qd.get_collections().collections
-        qdrant_stats = {}
-        total_points = 0
-        for coll in collections:
-            coll_info = qd.get_collection(coll.name)
-            points = coll_info.points_count
-            qdrant_stats[coll.name] = points
-            total_points += points
-        
-        stats["qdrant"] = {
-            "collections": qdrant_stats,
-            "total_points": total_points
-        }
-    except Exception as e:
-        stats["qdrant"] = {"error": str(e)}
-    
-    try:
-        # Meilisearch
-        meili = meili_client()
-        idx = meili.index(MEILI_INDEX)
-        meili_stats = idx.get_stats()
-        stats["meilisearch"] = {
-            "documents": meili_stats.get("numberOfDocuments", 0),
-            "indexing": meili_stats.get("isIndexing", False)
-        }
-    except Exception as e:
-        stats["meilisearch"] = {"error": str(e)}
-    
-    # CONTAINERS (Docker stats)
-    try:
-        result = subprocess.run(
-            ["docker", "stats", "--no-stream", "--format", 
-             "{{.Container}},{{.CPUPerc}},{{.MemUsage}},{{.MemPerc}}"],
-            capture_output=True, text=True, timeout=3
-        )
-        if result.returncode == 0:
-            containers = {}
-            for line in result.stdout.strip().split('\n'):
-                if line:
-                    parts = line.split(',')
-                    if len(parts) == 4:
-                        name = parts[0]
-                        containers[name] = {
-                            "cpu_percent": parts[1].replace('%', ''),
-                            "memory": parts[2],
-                            "memory_percent": parts[3].replace('%', '')
-                        }
-            stats["containers"] = containers
-    except Exception as e:
-        stats["containers"] = {"error": str(e)}
-    
-    stats["timestamp"] = datetime.now().isoformat()
-    
-    return stats
-
-
-@app.get("/hostmonitor", response_class=HTMLResponse)
-async def hostmonitor(request: Request):
-    """System monitoring dashboard"""
-    return templates.TemplateResponse("hostmonitor.html", {"request": request})
-

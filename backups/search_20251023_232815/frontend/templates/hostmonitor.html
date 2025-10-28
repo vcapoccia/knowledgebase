@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitor - KB Search</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-top: 15px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .status-ok {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .status-warning {
+            background: #FF9800;
+            color: white;
+        }
+        
+        .status-critical {
+            background: #F44336;
+            color: white;
+        }
+        
+        .refresh-info {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .updating {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 System Monitor - KB Search</h1>
+        
+        <div class="grid">
+            <!-- CPU Card -->
+            <div class="card">
+                <div class="card-title">🖥️ CPU</div>
+                <div class="metric">
+                    <span class="metric-label">Utilizzo</span>
+                    <span class="metric-value" id="cpu-percent">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Core</span>
+                    <span class="metric-value" id="cpu-count">--</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="cpuChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- GPU Card -->
+            <div class="card">
+                <div class="card-title">🎮 GPU</div>
+                <div class="metric">
+                    <span class="metric-label">Utilizzo</span>
+                    <span class="metric-value" id="gpu-util">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Memoria</span>
+                    <span class="metric-value" id="gpu-mem">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Temperatura</span>
+                    <span class="metric-value" id="gpu-temp">--</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="gpuChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- RAM Card -->
+            <div class="card">
+                <div class="card-title">💾 RAM</div>
+                <div class="metric">
+                    <span class="metric-label">Utilizzata</span>
+                    <span class="metric-value" id="ram-used">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Disponibile</span>
+                    <span class="metric-value" id="ram-avail">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Totale</span>
+                    <span class="metric-value" id="ram-total">--</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="ramChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Disk Card -->
+            <div class="card">
+                <div class="card-title">💿 Disco</div>
+                <div class="metric">
+                    <span class="metric-label">Utilizzato</span>
+                    <span class="metric-value" id="disk-used">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Libero</span>
+                    <span class="metric-value" id="disk-free">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">KB Directory</span>
+                    <span class="metric-value" id="disk-kb">--</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="diskChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Database Card -->
+            <div class="card">
+                <div class="card-title">🗄️ Database</div>
+                <div class="metric">
+                    <span class="metric-label">PostgreSQL</span>
+                    <span class="metric-value" id="db-pg">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Qdrant Points</span>
+                    <span class="metric-value" id="db-qdrant">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Meilisearch</span>
+                    <span class="metric-value" id="db-meili">--</span>
+                </div>
+            </div>
+            
+            <!-- Containers Card -->
+            <div class="card">
+                <div class="card-title">🐳 Docker Containers</div>
+                <div id="containers-list"></div>
+            </div>
+        </div>
+        
+        <div class="refresh-info">
+            <span id="update-status">Aggiornamento in corso...</span> • 
+            Ultimo aggiornamento: <span id="last-update">--</span>
+        </div>
+    </div>
+    
+    <script>
+        // Charts
+        let cpuChart, gpuChart, ramChart, diskChart;
+        
+        // Data history
+        const historySize = 20;
+        const cpuHistory = [];
+        const gpuHistory = [];
+        const ramHistory = [];
+        
+        // Initialize charts
+        function initCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            };
+            
+            // CPU Chart
+            cpuChart = new Chart(document.getElementById('cpuChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'CPU %',
+                        data: [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+            
+            // GPU Chart
+            gpuChart = new Chart(document.getElementById('gpuChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'GPU %',
+                        data: [],
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+            
+            // RAM Chart
+            ramChart = new Chart(document.getElementById('ramChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'RAM %',
+                        data: [],
+                        borderColor: '#FF9800',
+                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+            
+            // Disk Chart (doughnut)
+            diskChart = new Chart(document.getElementById('diskChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Utilizzato', 'Libero'],
+                    datasets: [{
+                        data: [0, 100],
+                        backgroundColor: ['#F44336', '#4CAF50']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+        
+        function updateChartHistory(chart, history, newValue) {
+            history.push(newValue);
+            if (history.length > historySize) {
+                history.shift();
+            }
+            
+            chart.data.labels = history.map((_, i) => '');
+            chart.data.datasets[0].data = history;
+            chart.update();
+        }
+        
+        function getStatusBadge(percent) {
+            if (percent < 60) return 'status-ok';
+            if (percent < 85) return 'status-warning';
+            return 'status-critical';
+        }
+        
+        async function updateStats() {
+            const updateEl = document.getElementById('update-status');
+            updateEl.classList.add('updating');
+            
+            try {
+                const response = await fetch('/api/system_stats');
+                const data = await response.json();
+                
+                // CPU
+                if (data.cpu) {
+                    const cpuPercent = Math.round(data.cpu.percent);
+                    document.getElementById('cpu-percent').innerHTML = 
+                        `<span class="status-badge ${getStatusBadge(cpuPercent)}">${cpuPercent}%</span>`;
+                    document.getElementById('cpu-count').textContent = data.cpu.count;
+                    updateChartHistory(cpuChart, cpuHistory, cpuPercent);
+                }
+                
+                // GPU
+                if (data.gpu && data.gpu.utilization_percent !== undefined) {
+                    const gpuUtil = data.gpu.utilization_percent;
+                    document.getElementById('gpu-util').innerHTML = 
+                        `<span class="status-badge ${getStatusBadge(gpuUtil)}">${gpuUtil}%</span>`;
+                    document.getElementById('gpu-mem').textContent = 
+                        `${data.gpu.memory_used_mb} / ${data.gpu.memory_total_mb} MB`;
+                    document.getElementById('gpu-temp').textContent = `${data.gpu.temperature_c}°C`;
+                    updateChartHistory(gpuChart, gpuHistory, gpuUtil);
+                } else {
+                    document.getElementById('gpu-util').textContent = 'N/A';
+                    document.getElementById('gpu-mem').textContent = 'N/A';
+                    document.getElementById('gpu-temp').textContent = 'N/A';
+                }
+                
+                // RAM
+                if (data.memory) {
+                    const ramPercent = Math.round(data.memory.percent);
+                    document.getElementById('ram-used').innerHTML = 
+                        `<span class="status-badge ${getStatusBadge(ramPercent)}">${data.memory.used_gb} GB (${ramPercent}%)</span>`;
+                    document.getElementById('ram-avail').textContent = `${data.memory.available_gb} GB`;
+                    document.getElementById('ram-total').textContent = `${data.memory.total_gb} GB`;
+                    updateChartHistory(ramChart, ramHistory, ramPercent);
+                }
+                
+                // Disk
+                if (data.disk) {
+                    const diskPercent = Math.round(data.disk.percent);
+                    document.getElementById('disk-used').innerHTML = 
+                        `<span class="status-badge ${getStatusBadge(diskPercent)}">${data.disk.used_gb} GB (${diskPercent}%)</span>`;
+                    document.getElementById('disk-free').textContent = `${data.disk.free_gb} GB`;
+                    document.getElementById('disk-kb').textContent = 
+                        data.disk.kb_size_gb ? `${data.disk.kb_size_gb} GB` : 'N/A';
+                    
+                    diskChart.data.datasets[0].data = [data.disk.used_gb, data.disk.free_gb];
+                    diskChart.update();
+                }
+                
+                // Database
+                if (data.postgresql) {
+                    document.getElementById('db-pg').textContent = 
+                        `${data.postgresql.size_mb} MB (${data.postgresql.documents} docs)`;
+                }
+                
+                if (data.qdrant) {
+                    document.getElementById('db-qdrant').textContent = 
+                        data.qdrant.total_points.toLocaleString();
+                }
+                
+                if (data.meilisearch) {
+                    document.getElementById('db-meili').textContent = 
+                        `${data.meilisearch.documents.toLocaleString()} docs`;
+                }
+                
+                // Containers
+                if (data.containers) {
+                    const containersList = document.getElementById('containers-list');
+                    let html = '';
+                    for (const [name, stats] of Object.entries(data.containers)) {
+                        if (stats.cpu_percent) {
+                            const shortName = name.replace('kbsearch-', '');
+                            html += `
+                                <div class="metric">
+                                    <span class="metric-label">${shortName}</span>
+                                    <span class="metric-value">${stats.cpu_percent}% CPU • ${stats.memory}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                    containersList.innerHTML = html;
+                }
+                
+                // Update timestamp
+                const now = new Date();
+                document.getElementById('last-update').textContent = now.toLocaleTimeString('it-IT');
+                
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            } finally {
+                updateEl.classList.remove('updating');
+            }
+        }
+        
+        // Initialize
+        initCharts();
+        updateStats();
+        
+        // Auto-refresh every 3 seconds
+        setInterval(updateStats, 3000);
+    </script>
+</body>
+</html>

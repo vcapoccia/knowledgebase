@@ -1,0 +1,27 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# tool utili per estrazione testi/OCR
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    poppler-utils tesseract-ocr libreoffice \
+    wget curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# librerie python
+RUN pip install --no-cache-dir \
+    redis rq \
+    psycopg[binary] meilisearch qdrant-client \
+    python-magic \
+    pypdf python-docx python-pptx \
+    sentence-transformers
+
+# copio il file dei task a build-time (verrà poi sovrascritto dal bind mount read-only)
+COPY worker_tasks.py /app/worker_tasks.py
+COPY config /app/config
+
+# parte un worker RQ "puro" (nessun --serializer custom)
+CMD ["bash", "-lc", "python - <<'PY'\nimport os\nfrom redis import Redis\nfrom rq import Worker, Queue, Connection\nimport worker_tasks  # to ensure module is importable\nredis_url=os.environ.get('REDIS_URL','redis://redis:6379/0')\nqname=os.environ.get('RQ_QUEUE','kb_ingestion')\nwith Connection(Redis.from_url(redis_url)):\n    Worker([qname]).work(burst=False)\nPY"]

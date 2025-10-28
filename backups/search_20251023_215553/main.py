@@ -671,10 +671,9 @@ async def start_ingestion(
         q = Queue("kb_ingestion", connection=rc)
         
         # Importa il task
-        from worker_tasks import run_ingestion
         
         job = q.enqueue(
-            run_ingestion,
+            'worker_tasks.run_ingestion',
             {"mode": mode, "model": model},
             job_timeout="24h",
             result_ttl=86400

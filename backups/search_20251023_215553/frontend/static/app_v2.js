@@ -10,12 +10,7 @@ let currentFilters = {
   oggetto: '',
   tipo_doc: '',
   categoria: '',
-  ext: '',
-  sd_numero: '',
-  lotto: '',
-  progressivo_oda: '',
-  progressivo_as: '',
-  fase: ''
+  ext: ''
 };
 let excludeFilters = new Set();
 let allResults = [];
@@ -60,17 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-prev')?.addEventListener('click', () => changePage(-1));
   document.getElementById('btn-next')?.addEventListener('click', () => changePage(1));
   
-  ['f-area', 'f-anno', 'f-cliente', 'f-oggetto', 'f-tipo', 'f-categoria', 'f-ext', 'f-sd', 'f-lotto', 'f-prog-oda', 'f-prog-as', 'f-fase'].forEach(id => {
+  ['f-area', 'f-anno', 'f-cliente', 'f-oggetto', 'f-tipo', 'f-categoria', 'f-ext'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('change', () => {
-        let key = id.replace('f-', '').replace('tipo', 'tipo_doc');
-        
-        // Map dei nuovi filtri
-        if (id === 'f-sd') key = 'sd_numero';
-        if (id === 'f-prog-oda') key = 'progressivo_oda';
-        if (id === 'f-prog-as') key = 'progressivo_as';
-        
+        const key = id.replace('f-', '').replace('tipo', 'tipo_doc');
         currentFilters[key] = el.value;
       });
     }
@@ -217,13 +206,6 @@ function updateFacets(facets) {
   populateSelect('f-tipo', facets.tipo_doc || {});
   populateSelect('f-categoria', facets.categoria || {});
   populateSelect('f-ext', facets.ext || {});
-  
-  // Nuovi metadati
-  populateSelectArray('f-sd', facets.sd_numero || []);
-  populateSelectArray('f-lotto', facets.lotto || []);
-  populateSelectArray('f-prog-oda', facets.progressivo_oda || []);
-  populateSelectArray('f-prog-as', facets.progressivo_as || []);
-  populateSelectArray('f-fase', facets.fase || []);
 }
 
 function populateSelect(selectId, facetData) {
@@ -255,39 +237,6 @@ function populateSelect(selectId, facetData) {
   });
   
   if (currentValue && facetData[currentValue]) {
-    select.value = currentValue;
-  }
-}
-
-function populateSelectArray(selectId, values) {
-  const select = document.getElementById(selectId);
-  if (!select) return;
-  
-  const currentValue = select.value;
-  
-  // Rimuovi tutte le opzioni tranne la prima (default "Tutti/Tutte")
-  while (select.options.length > 1) {
-    select.remove(1);
-  }
-  
-  if (!Array.isArray(values) || values.length === 0) {
-    select.disabled = true;
-    return;
-  }
-  
-  select.disabled = false;
-  
-  values.forEach(value => {
-    if (value === null || value === undefined) return;
-    
-    const option = document.createElement('option');
-    option.value = value;
-    option.textContent = value;
-    select.appendChild(option);
-  });
-  
-  // Ripristina valore selezionato se ancora presente
-  if (currentValue && values.includes(parseInt(currentValue)) || values.includes(currentValue)) {
     select.value = currentValue;
   }
 }
@@ -660,7 +609,7 @@ function showError(message) {
 
 // ===== Reset =====
 function resetFilters() {
-  ['f-area', 'f-anno', 'f-cliente', 'f-oggetto', 'f-tipo', 'f-categoria', 'f-ext', 'f-sd', 'f-lotto', 'f-prog-oda', 'f-prog-as', 'f-fase'].forEach(id => {
+  ['f-area', 'f-anno', 'f-cliente', 'f-oggetto', 'f-tipo', 'f-categoria', 'f-ext'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -672,12 +621,7 @@ function resetFilters() {
     oggetto: '',
     tipo_doc: '',
     categoria: '',
-    ext: '',
-    sd_numero: '',
-    lotto: '',
-    progressivo_oda: '',
-    progressivo_as: '',
-    fase: ''
+    ext: ''
   };
   
   excludeFilters.clear();
