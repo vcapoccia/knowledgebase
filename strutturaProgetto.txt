@@ -1,0 +1,119 @@
+.
+├── api
+│   ├── Dockerfile_api
+│   ├── frontend
+│   ├── improve_search.bak
+│   ├── improve_search.py
+│   ├── main.py
+│   ├── main.py.backup_fix
+│   ├── __pycache__
+│   │   └── route_admin.cpython-313.pyc
+│   ├── requirements.txt
+│   ├── requirements.txt.gpu.bak
+│   ├── route_admin.py
+│   └── route_download.py
+├── backups
+│   ├── search_20251023_215553
+│   │   ├── frontend
+│   │   ├── main.py
+│   │   └── worker
+│   └── search_20251023_232815
+│       ├── frontend
+│       ├── main.py
+│       └── worker
+├── data
+├── diagnostica_backend.sh
+├── docker
+│   ├── worker.Dockerfile
+│   └── worker-entrypoint.sh
+├── docker-compose.override.yml
+├── docker-compose.yml
+├── Dockerfile_api
+├── Dockerfile_debug
+├── Dockerfile_worker
+├── endpoint_download.py
+├── frontend
+│   ├── static
+│   │   ├── app_v2.bak
+│   │   ├── app_v2.js
+│   │   ├── ENG24-LOGO-ICON-DARK.svg
+│   │   ├── quick_filters.js
+│   │   ├── style_v2.bak2
+│   │   └── style_v2.css
+│   └── templates
+│       ├── admin.html
+│       ├── home.bak
+│       └── home.html
+├── libreoffice_watchdog.sh
+├── logs
+│   ├── init.log
+│   └── libreoffice_watchdog.log
+├── main.back
+├── main.py
+├── Makefile
+├── __pycache__
+│   ├── improve_search.cpython-313.pyc
+│   └── main.cpython-313.pyc
+├── README.md
+├── requirements_api.txt
+├── requirements_worker.txt
+├── route_admin_multimodel.py
+├── scripts
+│   ├── backup_full.sh
+│   ├── check_status.sh
+│   ├── cleanup_databases.sh
+│   ├── config
+│   │   ├── backup.conf
+│   │   └── github.conf
+│   ├── GITHUB_SYNC_README.md
+│   ├── lib
+│   ├── LLEN
+│   ├── logs
+│   │   ├── github_sync_20251022.log
+│   │   ├── github_sync_20251023.log
+│   │   └── github_sync_20251028.log
+│   ├── monitor_ingestion.py
+│   ├── quick_fix_post_reboot.sh
+│   ├── README.md
+│   ├── restart_ingestion.sh
+│   ├── restore.sh
+│   ├── setup_autosync_cron.sh
+│   ├── setup_cron.sh
+│   ├── setup_git_hooks.sh
+│   ├── SMEMBERS
+│   ├── sync_github.sh
+│   └── test_improved_search.sh
+├── strutturaProgetto.txt
+├── venv
+│   ├── bin
+│   │   ├── activate
+│   │   ├── activate.csh
+│   │   ├── activate.fish
+│   │   ├── Activate.ps1
+│   │   ├── normalizer
+│   │   ├── pip
+│   │   ├── pip3
+│   │   ├── pip3.13
+│   │   ├── python
+│   │   ├── python3
+│   │   └── python3.13
+│   ├── include
+│   │   └── python3.13
+│   ├── lib
+│   │   └── python3.13
+│   ├── lib64
+│   │   └── python3.13
+│   └── pyvenv.cfg
+├── worker
+│   ├── Dockerfile_worker
+│   ├── logs
+│   ├── metadata_extractor.py
+│   ├── __pycache__
+│   │   └── worker_tasks.cpython-313.pyc
+│   ├── requirements.txt
+│   ├── worker_tasks.py
+│   └── worker_tasks.py.backup_20251023_210534
+├── worker_tasks_multimodel.py
+└── worker_tasks.py
+
+33 directories, 84 files

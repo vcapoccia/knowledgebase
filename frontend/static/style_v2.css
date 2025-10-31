@@ -905,4 +905,197 @@ body {
         width: 100%;
         height: 40px;
     }
+}/* ═══════════════════════════════════════════════════════════════
+   QUICK FILTERS - CSS INTEGRATO CON DESIGN ESISTENTE
+   Da aggiungere alla FINE di style_v2.css
+   Usa le stesse CSS variables per mantenere consistenza
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Container Quick Filters */
+.quick-filters {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
 }
+
+.quick-filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Separator tra gruppi */
+.quick-separator {
+    color: var(--gray-300);
+    font-weight: 300;
+    font-size: 1.25rem;
+    line-height: 1;
+    margin: 0 0.25rem;
+    user-select: none;
+}
+
+/* Pills Quick Filter - ESTENDONO lo stile esistente .suggestion-pill */
+.qf-pill {
+    /* Eredita tutto da .suggestion-pill */
+    font-weight: 500;
+}
+
+.qf-pill.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    font-weight: 600;
+}
+
+.qf-pill.active::before {
+    content: "✓ ";
+    font-weight: bold;
+}
+
+/* Colori specifici per tipo quando attivi */
+.qf-pill[data-filter-type="area"].active {
+    background: #2196F3;
+    border-color: #2196F3;
+}
+
+.qf-pill[data-filter-type="fase"].active {
+    background: #9C27B0;
+    border-color: #9C27B0;
+}
+
+/* Pills Preset - Colore distintivo arancione */
+.qf-preset {
+    border-color: #FF9800;
+    color: #F57C00;
+    font-weight: 600;
+}
+
+.qf-preset:hover {
+    background: #FFF3E0;
+    border-color: #F57C00;
+}
+
+.qf-preset.active {
+    background: #FF9800;
+    color: white;
+    border-color: #FF9800;
+}
+
+/* Pills Reset - Colore rosso */
+.qf-reset {
+    border-color: #dc3545;
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.qf-reset:hover {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+/* Badge contatore filtri attivi (opzionale) */
+.qf-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #dc3545;
+    color: white;
+    border-radius: 9px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-left: 0.5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE - Si adatta come le suggestions esistenti
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .quick-filters {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .quick-filters-row {
+        gap: 0.375rem;
+    }
+    
+    .qf-pill, .qf-preset, .qf-reset {
+        padding: 0.25rem 0.625rem;
+        font-size: 0.8125rem;
+    }
+    
+    .quick-separator {
+        font-size: 1rem;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMAZIONI - Subtle e coerenti con il design esistente
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes qf-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.qf-pill.active,
+.qf-preset.active {
+    animation: qf-pulse 0.3s ease-in-out;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACCESSIBILITÀ
+   ═══════════════════════════════════════════════════════════════ */
+
+.qf-pill:focus,
+.qf-preset:focus,
+.qf-reset:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.qf-pill:focus:not(:focus-visible),
+.qf-preset:focus:not(:focus-visible),
+.qf-reset:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .qf-pill.active,
+    .qf-preset.active {
+        border-width: 2px;
+        font-weight: 700;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .qf-pill,
+    .qf-preset,
+    .qf-reset {
+        transition: none;
+        animation: none;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTE IMPLEMENTAZIONE:
+   
+   - Questo CSS SI INTEGRA con quello esistente
+   - Usa le STESSE CSS variables (--primary, --gray-*, ecc.)
+   - .qf-pill ESTENDE .suggestion-pill (non lo sovrascrive)
+   - Nessun conflitto con classi esistenti
+   - Responsive allineato con .suggestions
+   ═══════════════════════════════════════════════════════════════ */

@@ -26,22 +26,6 @@ from psycopg.rows import dict_row
 from rq import Queue
 from rq.job import Job
 
-# ===== IMPROVED SEARCH MODULE (v2.0) =====
-try:
-    import improve_search
-    from improve_search import (
-        extract_date_filter,
-        clean_query,
-        deduplicate_results,
-        apply_date_filter,
-        enhance_search_query
-    )
-    IMPROVED_SEARCH_AVAILABLE = True
-except ImportError as e:
-    IMPROVED_SEARCH_AVAILABLE = False
-    # Log sarà fatto dopo, quando log è definito
-
-
 # ===== ENV =====
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
@@ -82,12 +66,6 @@ MODEL_CONFIGS = {
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("api")
-
-# Log improve_search status (ora log è definito)
-if not IMPROVED_SEARCH_AVAILABLE:
-    log.warning("⚠️  improve_search module not available")
-else:
-    log.info("✅ improve_search module loaded successfully")
 
 app = FastAPI(title="KB Search API", version="3.0.0")
 
@@ -212,135 +190,14 @@ async def api_health():
         "timestamp": datetime.now().isoformat()
     }
 
-# ===== Facets =====
-@app.get("/facets")
-@app.get("/api/facets")
-async def get_facets():
-    """
-    Ritorna valori univoci per ogni campo filtro con conteggi
-    """
-    try:
-        with pg_conn() as conn, conn.cursor() as cur:
-            facets = {}
-            
-            # Area
-            cur.execute("""
-                SELECT area, COUNT(*) as cnt 
-                FROM documents WHERE area IS NOT NULL 
-                GROUP BY area ORDER BY area
-            """)
-            facets["area"] = {row["area"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Anno
-            cur.execute("""
-                SELECT anno, COUNT(*) as cnt 
-                FROM documents WHERE anno IS NOT NULL 
-                GROUP BY anno ORDER BY anno DESC
-            """)
-            facets["anno"] = {row["anno"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Cliente
-            cur.execute("""
-                SELECT cliente, COUNT(*) as cnt 
-                FROM documents WHERE cliente IS NOT NULL 
-                GROUP BY cliente ORDER BY cliente
-            """)
-            facets["cliente"] = {row["cliente"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Oggetto
-            cur.execute("""
-                SELECT oggetto, COUNT(*) as cnt 
-                FROM documents WHERE oggetto IS NOT NULL 
-                GROUP BY oggetto ORDER BY oggetto
-            """)
-            facets["oggetto"] = {row["oggetto"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Tipo Doc
-            cur.execute("""
-                SELECT tipo_doc, COUNT(*) as cnt 
-                FROM documents WHERE tipo_doc IS NOT NULL 
-                GROUP BY tipo_doc ORDER BY tipo_doc
-            """)
-            facets["tipo_doc"] = {row["tipo_doc"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Categoria
-            cur.execute("""
-                SELECT categoria, COUNT(*) as cnt 
-                FROM documents WHERE categoria IS NOT NULL 
-                GROUP BY categoria ORDER BY categoria
-            """)
-            facets["categoria"] = {row["categoria"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Estensione
-            cur.execute("""
-                SELECT ext, COUNT(*) as cnt 
-                FROM documents WHERE ext IS NOT NULL 
-                GROUP BY ext ORDER BY ext
-            """)
-            facets["ext"] = {row["ext"]: row["cnt"] for row in cur.fetchall()}
-            
-            # ===== NUOVE FACCETTE (con conteggi) =====
-            
-            # SD Numero
-            cur.execute("""
-                SELECT sd_numero, COUNT(*) as cnt 
-                FROM documents WHERE sd_numero IS NOT NULL 
-                GROUP BY sd_numero ORDER BY sd_numero
-            """)
-            facets["sd_numero"] = {str(row["sd_numero"]): row["cnt"] for row in cur.fetchall()}
-            
-            # Lotto
-            cur.execute("""
-                SELECT lotto, COUNT(*) as cnt 
-                FROM documents WHERE lotto IS NOT NULL 
-                GROUP BY lotto ORDER BY lotto
-            """)
-            facets["lotto"] = {str(row["lotto"]): row["cnt"] for row in cur.fetchall()}
-            
-            # Progressivo ODA
-            cur.execute("""
-                SELECT progressivo_oda, COUNT(*) as cnt 
-                FROM documents WHERE progressivo_oda IS NOT NULL 
-                GROUP BY progressivo_oda ORDER BY progressivo_oda
-            """)
-            facets["progressivo_oda"] = {str(row["progressivo_oda"]): row["cnt"] for row in cur.fetchall()}
-            
-            # Progressivo AS
-            cur.execute("""
-                SELECT progressivo_as, COUNT(*) as cnt 
-                FROM documents WHERE progressivo_as IS NOT NULL 
-                GROUP BY progressivo_as ORDER BY progressivo_as
-            """)
-            facets["progressivo_as"] = {str(row["progressivo_as"]): row["cnt"] for row in cur.fetchall()}
-            
-            # Fase
-            cur.execute("""
-                SELECT fase, COUNT(*) as cnt 
-                FROM documents WHERE fase IS NOT NULL 
-                GROUP BY fase ORDER BY cnt DESC, fase
-            """)
-            facets["fase"] = {row["fase"]: row["cnt"] for row in cur.fetchall()}
-            
-            return {
-                "ok": True,
-                "facets": facets,
-                "timestamp": datetime.now().isoformat()
-            }
-    
-    except Exception as e:
-        log.error(f"Errore facets: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
+# ===== Search =====
 @app.get("/search")
 @app.get("/api/search")
 async def search(
     q_text: str = Query(..., description="Query di ricerca"),
     model: str = Query(DEFAULT_MODEL, description="Modello embedding da usare"),
     top_k: int = Query(20, ge=1, le=100, description="Numero risultati"),
-    filters: Optional[str] = Query(None, description="Filtri (es: area:AQ,anno:2023)"),
-    deduplicate: bool = Query(False, description="Rimuovi duplicati"),
-    smart_filter: bool = Query(True, description="Filtro temporale")
+    filters: Optional[str] = Query(None, description="Filtri (es: area:AQ,anno:2023)")
 ):
     """
     Ricerca semantica vettoriale su Qdrant con aggregazione per documento
@@ -356,7 +213,7 @@ async def search(
             model = DEFAULT_MODEL
         
         config = MODEL_CONFIGS[model]
-        collection_name = f"{config['collection_prefix']}_docs"
+        collection_name = f"{config['collection_prefix']}_chunks"
         
         # Genera embedding query
         embedder = get_embedder(model)
@@ -392,68 +249,47 @@ async def search(
             with_payload=True
         )
         
-        # AGGREGAZIONE: Raggruppa chunk per documento, tieni il migliore per ogni doc
+        # Aggrega per documento e calcola score massimo
         docs_map = {}
         for hit in results:
-            doc_id = hit.payload.get("doc_id") or hit.payload.get("path")
-            
+            doc_id = hit.payload.get("doc_id")
             if not doc_id:
                 continue
             
-            # Se documento non ancora visto, o questo chunk ha score migliore
-            if doc_id not in docs_map or hit.score > docs_map[doc_id]["score"]:
+            if doc_id not in docs_map:
                 docs_map[doc_id] = {
-                    "id": doc_id,
+                    "doc_id": doc_id,
+                    "path": hit.payload.get("path", ""),
+                    "title": hit.payload.get("title", ""),
                     "score": hit.score,
-                    "title": hit.payload.get("title"),
-                    "text": hit.payload.get("text", "")[:500],  # Preview
-                    "path": hit.payload.get("path"),
-                    "area": hit.payload.get("area"),
-                    "anno": hit.payload.get("anno"),
-                    "cliente": hit.payload.get("cliente"),
-                    "oggetto": hit.payload.get("oggetto"),
-                    "tipo_doc": hit.payload.get("tipo_doc"),
-                    "categoria": hit.payload.get("categoria"),
-                    "ext": hit.payload.get("ext"),
-                    "chunk_id": hit.payload.get("chunk_id"),
-                    "page_number": hit.payload.get("page_number"),
-                    "versione": hit.payload.get("versione")
+                    "metadata": {k: v for k, v in hit.payload.items() if k not in ["doc_id", "path", "title", "text", "chunk_index"]},
+                    "chunks": []
                 }
+            
+            # Mantieni score massimo e aggiungi chunk
+            docs_map[doc_id]["score"] = max(docs_map[doc_id]["score"], hit.score)
+            docs_map[doc_id]["chunks"].append({
+                "chunk_index": hit.payload.get("chunk_index", 0),
+                "text": hit.payload.get("text", ""),
+                "score": hit.score
+            })
         
-        # Converti map in lista e ordina per score
-        unique_docs = sorted(docs_map.values(), key=lambda x: x["score"], reverse=True)
+        # Ordina documenti per score e limita a top_k
+        docs_list = sorted(docs_map.values(), key=lambda d: d["score"], reverse=True)[:top_k]
         
-        # Prendi solo top_k documenti
-        hits = unique_docs[:top_k]
+        # Per ogni documento, mantieni solo i top 3 chunk migliori
+        for doc in docs_list:
+            doc["chunks"] = sorted(doc["chunks"], key=lambda c: c["score"], reverse=True)[:3]
         
-        # Enhancement
-        enhancement_meta = {}
-        if IMPROVED_SEARCH_AVAILABLE and (deduplicate or smart_filter):
-            try:
-                enhance_input = [{'filename': h.get('path','').split('/')[-1], 'path': h.get('path'), 'score': h.get('score',0), 'metadata': {'year': h.get('anno'), 'version': h.get('versione')}, **{k:v for k,v in h.items() if k!='metadata'}} for h in hits]
-                _, enhanced, meta = enhance_search_query(q_text, enhance_input, deduplicate, smart_filter)
-                hits = [{'id':r.get('id'), 'score':r.get('score'), 'title':r.get('title'), 'text':r.get('text'), 'path':r.get('path'), 'area':r.get('area'), 'anno':r.get('anno'), 'cliente':r.get('cliente'), 'oggetto':r.get('oggetto'), 'tipo_doc':r.get('tipo_doc'), 'categoria':r.get('categoria'), 'ext':r.get('ext'), 'chunk_id':r.get('chunk_id'), 'page_number':r.get('page_number'), 'versione':r.get('versione'), '_other_versions_count':r.get('_other_versions_count',0), '_all_versions':r.get('_all_versions',[])} for r in enhanced]
-                enhancement_meta = {'enhanced':True, 'clean_query':meta.get('clean_query'), 'date_filter':meta.get('date_filter'), 'date_filter_applied':meta.get('filtered_by_date',False), 'deduplicated':meta.get('deduplicated',False), 'removed_duplicates':meta.get('removed_duplicates',0)}
-                log.info(f"✨ Enhanced: dedup={deduplicate}, filter={smart_filter}, removed={meta.get('removed_duplicates',0)}")
-            except Exception as e:
-                log.error(f"Enhancement error: {e}")
-                enhancement_meta = {'enhanced':False, 'error':str(e)}
+        elapsed = (datetime.now() - start_time).total_seconds() * 1000
         
-        processing_time = (datetime.now() - start_time).total_seconds() * 1000
-        
-        response_dict = {
-            "total": len(hits),
-            "total_unique_docs": len(unique_docs),  # Quanti documenti unici trovati
-            "total_chunks_searched": len(results),   # Quanti chunk esaminati
-            "hits": hits,
-            "processing_time_ms": round(processing_time, 2),
+        return {
+            "total": len(docs_list),
+            "hits": docs_list,
+            "processing_time_ms": round(elapsed, 2),
             "model": model,
-            "collection": collection_name,
-            "search_method": "semantic"
+            "collection": collection_name
         }
-        if enhancement_meta:
-            response_dict['enhancement'] = enhancement_meta
-        return response_dict
     
     except Exception as e:
         log.error(f"Errore ricerca: {e}")
@@ -461,14 +297,16 @@ async def search(
         log.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/search/keyword")
-async def search_keyword(
-    q: str = Query(..., description="Query keyword"),
+# ===== Keyword Search (Meilisearch) =====
+@app.get("/keyword_search")
+@app.get("/api/keyword_search")
+async def keyword_search(
+    q: str = Query(..., description="Query di ricerca"),
     limit: int = Query(20, ge=1, le=100),
-    filters: Optional[str] = Query(None)
+    filters: Optional[str] = Query(None, description="Filtri (es: area=AQ AND anno=2023)")
 ):
     """
-    Ricerca keyword su Meilisearch (fallback)
+    Ricerca full-text su Meilisearch
     """
     if not q or not q.strip():
         return {"total": 0, "hits": [], "processing_time_ms": 0}
@@ -479,288 +317,187 @@ async def search_keyword(
         meili = meili_client()
         idx = meili.index(MEILI_INDEX)
         
-        # Prepara filtri Meilisearch
-        meili_filters = []
+        search_params = {
+            "limit": limit,
+            "attributesToRetrieve": ["*"]
+        }
+        
         if filters:
-            for f in filters.split(','):
-                if ':' in f:
-                    key, value = f.split(':', 1)
-                    meili_filters.append(f"{key.strip()} = '{value.strip()}'")
+            search_params["filter"] = filters
         
-        filter_str = " AND ".join(meili_filters) if meili_filters else None
+        results = idx.search(q.strip(), search_params)
         
-        results = idx.search(
-            q.strip(),
-            {
-                "limit": limit,
-                "filter": filter_str,
-                "attributesToRetrieve": ["id", "title", "content", "path", "area", "anno", "cliente", "oggetto"]
-            }
-        )
-        
-        hits = []
-        for hit in results.get("hits", []):
-            hits.append({
-                "id": hit.get("id"),
-                "title": hit.get("title"),
-                "text": hit.get("content", "")[:500],
-                "path": hit.get("path"),
-                "area": hit.get("area"),
-                "anno": hit.get("anno"),
-                "cliente": hit.get("cliente"),
-                "oggetto": hit.get("oggetto")
-            })
-        
-        processing_time = (datetime.now() - start_time).total_seconds() * 1000
+        elapsed = (datetime.now() - start_time).total_seconds() * 1000
         
         return {
             "total": results.get("estimatedTotalHits", 0),
-            "hits": hits,
-            "processing_time_ms": round(processing_time, 2)
+            "hits": results.get("hits", []),
+            "processing_time_ms": round(elapsed, 2)
         }
     
     except Exception as e:
-        log.error(f"Errore ricerca keyword: {e}")
+        log.error(f"Errore keyword search: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ===== Facets =====
 @app.get("/facets")
 @app.get("/api/facets")
-async def get_facets():
-    """
-    Ritorna faccette aggregate da PostgreSQL (GLOBALI - tutti i documenti)
-    """
-    try:
-        with pg_conn() as conn, conn.cursor() as cur:
-            facets = {}
-            
-            # Area
-            cur.execute("SELECT area, COUNT(*) as cnt FROM documents WHERE area IS NOT NULL GROUP BY area ORDER BY cnt DESC")
-            facets["area"] = {row["area"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Anno
-            cur.execute("SELECT anno, COUNT(*) as cnt FROM documents WHERE anno IS NOT NULL GROUP BY anno ORDER BY anno DESC")
-            facets["anno"] = {row["anno"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Cliente
-            cur.execute("SELECT cliente, COUNT(*) as cnt FROM documents WHERE cliente IS NOT NULL GROUP BY cliente ORDER BY cnt DESC LIMIT 50")
-            facets["cliente"] = {row["cliente"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Oggetto
-            cur.execute("SELECT oggetto, COUNT(*) as cnt FROM documents WHERE oggetto IS NOT NULL GROUP BY oggetto ORDER BY cnt DESC LIMIT 50")
-            facets["oggetto"] = {row["oggetto"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Tipo Doc
-            cur.execute("SELECT tipo_doc, COUNT(*) as cnt FROM documents WHERE tipo_doc IS NOT NULL GROUP BY tipo_doc ORDER BY cnt DESC")
-            facets["tipo_doc"] = {row["tipo_doc"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Categoria
-            cur.execute("SELECT categoria, COUNT(*) as cnt FROM documents WHERE categoria IS NOT NULL GROUP BY categoria ORDER BY cnt DESC")
-            facets["categoria"] = {row["categoria"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Estensione
-            cur.execute("SELECT ext, COUNT(*) as cnt FROM documents WHERE ext IS NOT NULL GROUP BY ext ORDER BY cnt DESC")
-            facets["ext"] = {row["ext"]: row["cnt"] for row in cur.fetchall()}
-            
-            return {"facets": facets}
-    
-    except Exception as e:
-        log.error(f"Errore facets: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/search_facets")
-@app.get("/api/search_facets")
-async def get_search_facets(
-    q_text: str = Query(..., description="Query di ricerca"),
-    model: str = Query(DEFAULT_MODEL, description="Modello embedding"),
-    filters: Optional[str] = Query(None, description="Filtri applicati")
+async def get_facets(
+    model: str = Query(DEFAULT_MODEL, description="Modello per collection")
 ):
     """
-    Faccette DINAMICHE basate sui risultati della ricerca corrente
+    Ottieni faccette disponibili da Qdrant
     """
     try:
-        # 1. Esegui ricerca per ottenere doc_ids risultanti
         if model not in MODEL_CONFIGS:
             model = DEFAULT_MODEL
         
         config = MODEL_CONFIGS[model]
-        collection_name = f"{config['collection_prefix']}_docs"
+        collection_name = f"{config['collection_prefix']}_chunks"
         
-        embedder = get_embedder(model)
-        query_vector = embedder(q_text.strip())
-        
-        # Prepara filtri Qdrant
-        qdrant_filter = None
-        if filters:
-            conditions = []
-            for f in filters.split(','):
-                if ':' in f:
-                    key, value = f.split(':', 1)
-                    key = key.strip()
-                    value = value.strip()
-                    if key and value:
-                        conditions.append(
-                            FieldCondition(key=key, match=MatchValue(value=value))
-                        )
-            if conditions:
-                qdrant_filter = Filter(must=conditions)
-        
-        # Ricerca vettoriale (top 100 per avere buon campione)
         qd = qdrant_client()
-        results = qd.search(
+        
+        # Verifica collection esiste
+        try:
+            qd.get_collection(collection_name)
+        except:
+            return {"facets": {}}
+        
+        # Lista campi comuni per faccette
+        facet_fields = ["area", "anno", "cliente", "categoria", "tipo_doc", "ext"]
+        
+        facets = {}
+        
+        # Per ogni campo, ottieni valori unici con conteggio
+        # Usa scroll per campionare punti (più veloce di aggregazione completa)
+        sample_size = 10000
+        scroll_result = qd.scroll(
             collection_name=collection_name,
-            query_vector=query_vector,
-            limit=100,
-            query_filter=qdrant_filter,
-            with_payload=True
+            limit=sample_size,
+            with_payload=True,
+            with_vectors=False
         )
         
-        # 2. Estrai doc_ids dai risultati
-        doc_ids = [hit.payload.get("doc_id") for hit in results if hit.payload.get("doc_id")]
+        points = scroll_result[0]
         
-        if not doc_ids:
-            return {"facets": {}, "total_results": 0}
+        for field in facet_fields:
+            values_count = {}
+            
+            for point in points:
+                if field in point.payload:
+                    value = str(point.payload[field])
+                    values_count[value] = values_count.get(value, 0) + 1
+            
+            if values_count:
+                # Ordina per conteggio decrescente
+                sorted_values = sorted(values_count.items(), key=lambda x: x[1], reverse=True)
+                facets[field] = [{"value": v, "count": c} for v, c in sorted_values[:50]]  # Top 50
         
-        # 3. Aggrega faccette SOLO su questi doc_ids
-        with pg_conn() as conn, conn.cursor() as cur:
-            facets = {}
-            
-            # Area
-            cur.execute("""
-                SELECT area, COUNT(*) as cnt 
-                FROM documents 
-                WHERE id = ANY(%s) AND area IS NOT NULL 
-                GROUP BY area 
-                ORDER BY cnt DESC
-            """, (doc_ids,))
-            facets["area"] = {row["area"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Anno
-            cur.execute("""
-                SELECT anno, COUNT(*) as cnt 
-                FROM documents 
-                WHERE id = ANY(%s) AND anno IS NOT NULL 
-                GROUP BY anno 
-                ORDER BY anno DESC
-            """, (doc_ids,))
-            facets["anno"] = {row["anno"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Cliente
-            cur.execute("""
-                SELECT cliente, COUNT(*) as cnt 
-                FROM documents 
-                WHERE id = ANY(%s) AND cliente IS NOT NULL 
-                GROUP BY cliente 
-                ORDER BY cnt DESC 
-                LIMIT 20
-            """, (doc_ids,))
-            facets["cliente"] = {row["cliente"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Oggetto
-            cur.execute("""
-                SELECT oggetto, COUNT(*) as cnt 
-                FROM documents 
-                WHERE id = ANY(%s) AND oggetto IS NOT NULL 
-                GROUP BY oggetto 
-                ORDER BY cnt DESC 
-                LIMIT 20
-            """, (doc_ids,))
-            facets["oggetto"] = {row["oggetto"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Tipo Doc
-            cur.execute("""
-                SELECT tipo_doc, COUNT(*) as cnt 
-                FROM documents 
-                WHERE id = ANY(%s) AND tipo_doc IS NOT NULL 
-                GROUP BY tipo_doc 
-                ORDER BY cnt DESC
-            """, (doc_ids,))
-            facets["tipo_doc"] = {row["tipo_doc"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Categoria
-            cur.execute("""
-                SELECT categoria, COUNT(*) as cnt 
-                FROM documents 
-                WHERE id = ANY(%s) AND categoria IS NOT NULL 
-                GROUP BY categoria 
-                ORDER BY cnt DESC
-            """, (doc_ids,))
-            facets["categoria"] = {row["categoria"]: row["cnt"] for row in cur.fetchall()}
-            
-            # Estensione
-            cur.execute("""
-                SELECT ext, COUNT(*) as cnt 
-                FROM documents 
-                WHERE id = ANY(%s) AND ext IS NOT NULL 
-                GROUP BY ext 
-                ORDER BY cnt DESC
-            """, (doc_ids,))
-            facets["ext"] = {row["ext"]: row["cnt"] for row in cur.fetchall()}
-            
-            return {"facets": facets, "total_results": len(doc_ids)}
+        return {"facets": facets, "collection": collection_name}
     
     except Exception as e:
-        log.error(f"Errore search_facets: {e}")
+        log.error(f"Errore facets: {e}")
+        return {"facets": {}, "error": str(e)}
+
+# ===== Document Management =====
+@app.get("/documents")
+async def list_documents(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0)
+):
+    """Lista documenti da PostgreSQL"""
+    try:
+        with pg_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, path, title, mtime, ctime
+                FROM documents
+                ORDER BY mtime DESC
+                LIMIT %s OFFSET %s
+            """, (limit, offset))
+            
+            docs = cur.fetchall()
+            
+            cur.execute("SELECT COUNT(*) as cnt FROM documents")
+            total = cur.fetchone()["cnt"]
+            
+            return {
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "documents": docs
+            }
+    
+    except Exception as e:
+        log.error(f"Errore list_documents: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# ===== Download & Thumbnail =====
-@app.get("/download_file")
-async def download_file(path: str = Query(..., description="Path del file da scaricare")):
-    """
-    Download di un documento dalla knowledge base
-    """
+@app.get("/document/{doc_id:path}")
+async def get_document(doc_id: str):
+    """Ottieni dettagli documento"""
     try:
-        # Costruisci path completo
-        full_path = Path(DOCS_BASE_PATH) / path
+        with pg_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, path, title, content, mtime, ctime
+                FROM documents
+                WHERE id = %s
+            """, (doc_id,))
+            
+            doc = cur.fetchone()
+            
+            if not doc:
+                raise HTTPException(status_code=404, detail="Documento non trovato")
+            
+            return doc
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.error(f"Errore get_document: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== File Download =====
+@app.get("/download/{file_path:path}")
+async def download_file(file_path: str):
+    """Download file da /mnt/kb"""
+    try:
+        full_path = Path(DOCS_BASE_PATH) / file_path
         
-        # Verifica che il file esista
         if not full_path.exists():
             raise HTTPException(status_code=404, detail="File non trovato")
         
-        # Verifica che sia un file (non directory)
         if not full_path.is_file():
-            raise HTTPException(status_code=400, detail="Il path specificato non è un file")
+            raise HTTPException(status_code=400, detail="Non è un file")
         
         # Verifica che il path sia dentro DOCS_BASE_PATH (security)
         if not str(full_path.resolve()).startswith(str(Path(DOCS_BASE_PATH).resolve())):
             raise HTTPException(status_code=403, detail="Accesso negato")
         
-        # Ottieni nome file per download
-        filename = full_path.name
-        
-        # Ritorna file
         return FileResponse(
             path=str(full_path),
-            filename=filename,
-            media_type='application/octet-stream'
+            filename=full_path.name,
+            media_type="application/octet-stream"
         )
     
     except HTTPException:
         raise
     except Exception as e:
-        log.error(f"Errore download file: {e}")
+        log.error(f"Errore download: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/thumbnail")
-async def get_thumbnail(
-    path: str = Query(..., description="Path del file"),
-    page: int = Query(1, ge=1, description="Numero pagina"),
-    width: int = Query(200, ge=50, le=500, description="Larghezza thumbnail")
-):
+# ===== Preview/Thumbnail =====
+@app.get("/preview/{file_path:path}")
+async def preview_file(file_path: str, page: int = Query(0, ge=0)):
     """
-    Genera thumbnail di una pagina PDF/DOCX
+    Anteprima file (solo PDF per ora)
+    Ritorna immagine PNG della pagina richiesta
     """
     try:
-        from PIL import Image
-        import io
+        full_path = Path(DOCS_BASE_PATH) / file_path
         
-        # Costruisci path completo
-        full_path = Path(DOCS_BASE_PATH) / path
-        
-        # Verifica sicurezza
         if not full_path.exists():
             raise HTTPException(status_code=404, detail="File non trovato")
         
+        # Security check
         if not str(full_path.resolve()).startswith(str(Path(DOCS_BASE_PATH).resolve())):
             raise HTTPException(status_code=403, detail="Accesso negato")
         
@@ -770,28 +507,19 @@ async def get_thumbnail(
         if ext == '.pdf':
             try:
                 import fitz  # PyMuPDF
+                from io import BytesIO
                 
                 doc = fitz.open(str(full_path))
                 
-                if page > len(doc):
-                    raise HTTPException(status_code=404, detail=f"Pagina {page} non esiste (totale: {len(doc)})")
+                if page >= len(doc):
+                    raise HTTPException(status_code=400, detail=f"Pagina {page} non esiste (max {len(doc)-1})")
                 
-                # Estrai pagina (0-indexed)
-                pdf_page = doc[page - 1]
+                page_obj = doc[page]
+                pix = page_obj.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom
                 
-                # Render come immagine
-                pix = pdf_page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom per qualità
-                img_data = pix.tobytes("png")
+                img_bytes = pix.tobytes("png")
                 
-                # Ridimensiona
-                img = Image.open(io.BytesIO(img_data))
-                aspect_ratio = img.height / img.width
-                new_height = int(width * aspect_ratio)
-                img = img.resize((width, new_height), Image.Resampling.LANCZOS)
-                
-                # Ritorna PNG
-                buf = io.BytesIO()
-                img.save(buf, format='PNG')
+                buf = BytesIO(img_bytes)
                 buf.seek(0)
                 
                 return Response(content=buf.getvalue(), media_type="image/png")
@@ -829,11 +557,11 @@ async def start_ingestion(
         rc = rconn()
         q = Queue("kb_ingestion", connection=rc)
         
-        # Importa il task
-        
+        # ✅ USA STRING REFERENCE - worker_tasks.py è nel worker container, NON nell'API
         job = q.enqueue(
             'worker_tasks.run_ingestion',
-            {"mode": mode, "model": model},
+            mode=mode,
+            model_type=model,
             job_timeout="24h",
             result_ttl=86400
         )
@@ -1015,7 +743,7 @@ async def list_models():
     collections = qd.get_collections().collections
     
     for model_type, config in MODEL_CONFIGS.items():
-        collection_name = f"{config['collection_prefix']}_docs"
+        collection_name = f"{config['collection_prefix']}_chunks"
         
         # Verifica se collection esiste
         exists = any(c.name == collection_name for c in collections)

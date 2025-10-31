@@ -1,588 +1,706 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <title>Admin KB - Monitoraggio Multi-Modello</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link href="/static/style.css" rel="stylesheet">
-  <style>
-    .current-doc {
-      background: #eff6ff;
-      border: 2px solid #3b82f6;
-      border-radius: 12px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-    }
-    .current-doc h3 {
-      margin: 0 0 0.5rem;
-      color: #1e40af;
-      font-size: 1.1rem;
-    }
-    .doc-steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 0.5rem;
-      margin-top: 0.75rem;
-    }
-    .step {
-      background: white;
-      border: 1px solid #dbeafe;
-      border-radius: 8px;
-      padding: 0.5rem;
-      text-align: center;
-      font-size: 0.85rem;
-    }
-    .step.active {
-      background: #3b82f6;
-      color: white;
-      font-weight: 600;
-    }
-    .step.done {
-      background: #10b981;
-      color: white;
-    }
-    .step.error {
-      background: #ef4444;
-      color: white;
-    }
-    .progress-bar {
-      width: 100%;
-      height: 24px;
-      background: #e5e7eb;
-      border-radius: 12px;
-      overflow: hidden;
-      position: relative;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #3b82f6, #60a5fa);
-      transition: width 0.3s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 0.75rem;
-      margin: 1rem 0;
-    }
-    .stat-box {
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      padding: 0.75rem;
-      text-align: center;
-    }
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #1e40af;
-    }
-    .stat-label {
-      font-size: 0.75rem;
-      color: #6b7280;
-      margin-top: 0.25rem;
-    }
-    .log-entry {
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 0.75rem;
-      margin-bottom: 0.5rem;
-      font-size: 0.9rem;
-    }
-    .log-entry.success {
-      border-left: 4px solid #10b981;
-    }
-    .log-entry.error {
-      border-left: 4px solid #ef4444;
-    }
-    .log-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 0.5rem;
-    }
-    .log-file {
-      font-weight: 600;
-      color: #1f2937;
-    }
-    .log-time {
-      color: #6b7280;
-      font-size: 0.8rem;
-    }
-    .log-details {
-      color: #4b5563;
-      font-size: 0.85rem;
-    }
-    .controls {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .badge {
-      display: inline-block;
-      padding: 0.25rem 0.5rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .badge.success { background: #d1fae5; color: #065f46; }
-    .badge.error { background: #fee2e2; color: #991b1b; }
-    .badge.processing { background: #dbeafe; color: #1e40af; }
-    
-    /* Model Selector */
-    .model-selector {
-      background: #f8fafc;
-      border: 2px solid #e5e7eb;
-      border-radius: 10px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-    }
-    .model-selector h4 {
-      margin: 0 0 0.75rem;
-      font-size: 1rem;
-      color: #1e40af;
-    }
-    .model-options {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 0.75rem;
-    }
-    .model-option {
-      background: white;
-      border: 2px solid #e5e7eb;
-      border-radius: 10px;
-      padding: 1rem;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .model-option:hover {
-      border-color: #3b82f6;
-      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
-    }
-    .model-option.selected {
-      border-color: #3b82f6;
-      background: #eff6ff;
-    }
-    .model-option input[type="radio"] {
-      margin-right: 0.5rem;
-    }
-    .model-label {
-      font-weight: 600;
-      color: #1f2937;
-      font-size: 1rem;
-    }
-    .model-desc {
-      font-size: 0.8rem;
-      color: #6b7280;
-      margin-top: 0.25rem;
-    }
-    .model-tech {
-      display: inline-block;
-      margin-top: 0.5rem;
-      padding: 0.25rem 0.5rem;
-      background: #f3f4f6;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      color: #4b5563;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Knowledge Base Ingestion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: #0f172a;
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: #334155;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-running {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-idle {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .status-done {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 1.5rem 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 32px;
+            background: #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-success .stat-value { color: #10b981; }
+        .stat-error .stat-value { color: #ef4444; }
+        .stat-info .stat-value { color: #3b82f6; }
+
+        /* ETA Display */
+        .eta-display {
+            background: #eff6ff;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .eta-icon {
+            font-size: 2rem;
+        }
+
+        .eta-content {
+            flex: 1;
+        }
+
+        .eta-label {
+            font-size: 0.75rem;
+            color: #1e40af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .eta-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+
+        /* Current Document */
+        .current-doc {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .current-doc-label {
+            font-size: 0.75rem;
+            color: #92400e;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .current-doc-path {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: #78350f;
+            word-break: break-all;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin: 1.5rem 0;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Model Selector */
+        .model-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .model-option {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .model-option:hover {
+            border-color: #3b82f6;
+        }
+
+        .model-option.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        /* Failed Docs */
+        .failed-docs {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .failed-doc {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .failed-doc-path {
+            font-family: 'Monaco', 'Courier New', monospace;
+            color: #991b1b;
+            margin-bottom: 0.25rem;
+        }
+
+        .failed-doc-error {
+            color: #dc2626;
+            font-size: 0.8rem;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
 <body>
-  <header class="topbar">
-    <img src="/static/ENG24-LOGO-ICON-DARK.svg" alt="Logo" class="logo">
-    <h1>Admin - Ingestion Multi-Modello</h1>
-  </header>
+    <div class="container">
+        <h1>📊 Knowledge Base - Admin Panel</h1>
 
-  <main class="container">
-    <!-- Model Selector -->
-    <section class="model-selector">
-      <h4>🤖 Seleziona Modello Embedding</h4>
-      <div class="model-options">
-        <label class="model-option" id="opt-st">
-          <input type="radio" name="model" value="sentence-transformer" checked>
-          <div class="model-label">Sentence Transformer</div>
-          <div class="model-desc">Veloce, leggero, ottimo per ricerca generale</div>
-          <span class="model-tech">384-dim • Transformers</span>
-        </label>
-        
-        <label class="model-option" id="opt-llama">
-          <input type="radio" name="model" value="llama3">
-          <div class="model-label">Llama 3</div>
-          <div class="model-desc">Potente, preciso, richiede Ollama</div>
-          <span class="model-tech">4096-dim • Ollama</span>
-        </label>
-        
-        <label class="model-option" id="opt-mistral">
-          <input type="radio" name="model" value="mistral">
-          <div class="model-label">Mistral</div>
-          <div class="model-desc">Bilanciato, efficiente, richiede Ollama</div>
-          <span class="model-tech">4096-dim • Ollama</span>
-        </label>
-      </div>
-    </section>
-
-    <!-- Controlli -->
-    <section class="card">
-      <h3>🎮 Controlli</h3>
-      <div class="controls">
-        <button id="btn-init" class="btn">🔧 Inizializza Indici</button>
-        <button id="btn-ingest" class="btn primary">▶️ Avvia Ingestion</button>
-        <button id="btn-pause" class="btn">⏸️ Pausa</button>
-        <button id="btn-resume" class="btn">▶️ Riprendi</button>
-        <button id="btn-clear-failed" class="btn ghost">🗑️ Pulisci Falliti</button>
-        <span id="status-msg" class="muted"></span>
-      </div>
-      <div id="collection-info" class="muted small" style="margin-top: 0.75rem;"></div>
-    </section>
-
-    <!-- Progress Bar -->
-    <section class="card">
-      <h3>📊 Progress Generale</h3>
-      <div class="progress-bar">
-        <div id="progress-fill" class="progress-fill" style="width: 0%">0%</div>
-      </div>
-      <div class="stats-grid" style="margin-top: 1rem;">
-        <div class="stat-box">
-          <div class="stat-value" id="stat-done">0</div>
-          <div class="stat-label">Processati</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="stat-total">0</div>
-          <div class="stat-label">Totali</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="stat-success">0</div>
-          <div class="stat-label">✓ Successo</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="stat-failed">0</div>
-          <div class="stat-label">✗ Falliti</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="stat-chunked">0</div>
-          <div class="stat-label">📄 Chunked</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="stat-meili">0</div>
-          <div class="stat-label">🔍 Meili</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="stat-qdrant">0</div>
-          <div class="stat-label">🎯 Qdrant</div>
-        </div>
-      </div>
-      <div id="stage-info" class="muted small" style="margin-top: 0.5rem;"></div>
-    </section>
-
-    <!-- Documento Corrente -->
-    <section id="current-doc-section" class="current-doc" style="display: none;">
-      <h3>📄 Documento in Elaborazione</h3>
-      <div id="current-doc-file" class="log-file"></div>
-      <div id="current-doc-path" class="muted small" style="margin: 0.25rem 0;"></div>
-      
-      <div class="doc-steps">
-        <div class="step" id="step-reading">📖 Lettura</div>
-        <div class="step" id="step-extracting">🔍 Estrazione</div>
-        <div class="step" id="step-chunking">📄 Chunking</div>
-        <div class="step" id="step-embedding">🎯 Embedding</div>
-        <div class="step" id="step-qdrant">💾 Qdrant</div>
-        <div class="step" id="step-meili">🔎 Meili</div>
-        <div class="step" id="step-postgres">🗄️ PostgreSQL</div>
-      </div>
-      
-      <div id="current-doc-details" class="muted small" style="margin-top: 0.75rem;"></div>
-    </section>
-
-    <!-- Log Processing -->
-    <section class="card">
-      <h3>📋 Log Processamento (ultimi 50)</h3>
-      <div id="processing-log" style="max-height: 400px; overflow-y: auto;">
-        <div class="muted">Nessun log disponibile</div>
-      </div>
-    </section>
-
-    <!-- Queue Status -->
-    <section class="cards">
-      <div class="card">
-        <h3>📊 Queue Status</h3>
-        <div class="kvs">
-          <div><span>Nome</span><b id="q-name">-</b></div>
-          <div><span>Jobs</span><b id="q-count">0</b></div>
-          <div><span>Workers</span><b id="q-workers">0</b></div>
-          <div><span>Started</span><b id="q-started">0</b></div>
-          <div><span>Scheduled</span><b id="q-scheduled">0</b></div>
-          <div><span>Deferred</span><b id="q-deferred">0</b></div>
-          <div><span>Failed</span><b id="q-failed" class="error">0</b></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>❤️ Health</h3>
-        <pre id="health" style="max-height: 150px; overflow: auto;">...</pre>
-      </div>
-    </section>
-
-    <!-- Documenti Falliti -->
-    <section class="card">
-      <h3>⌠Documenti Falliti</h3>
-      <div id="failed-list" class="failed-list">
-        <div class="muted">Caricamento...</div>
-      </div>
-    </section>
-
-    <!-- Link -->
-    <section class="card">
-      <div style="display: flex; gap: 1rem;">
-        <a href="/" class="btn ghost">🏠 Torna alla Ricerca</a>
-        <button onclick="location.reload()" class="btn ghost">🔄 Ricarica</button>
-      </div>
-    </section>
-  </main>
-
-  <footer class="container">
-    <p class="muted small">Auto-refresh ogni 2 secondi</p>
-  </footer>
-
-  <script>
-    const api = (path, opts={}) => fetch(path, opts).then(r => r.ok ? r.json() : Promise.reject(r));
-    const $ = sel => document.querySelector(sel);
-
-    // Model selection
-    document.querySelectorAll('.model-option').forEach(opt => {
-      opt.addEventListener('click', () => {
-        document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
-        opt.classList.add('selected');
-      });
-    });
-
-    // Seleziona default
-    $('#opt-st').classList.add('selected');
-
-    // Get selected model
-    function getSelectedModel() {
-      const radio = document.querySelector('input[name="model"]:checked');
-      return radio ? radio.value : 'sentence-transformer';
-    }
-
-    // Refresh progress e current doc
-    async function refreshProgress() {
-      try {
-        const data = await api('/progress');
-        
-        // Progress bar
-        const percent = data.total > 0 ? Math.round((data.done / data.total) * 100) : 0;
-        $('#progress-fill').style.width = `${percent}%`;
-        $('#progress-fill').textContent = `${percent}% (${data.done}/${data.total})`;
-        
-        // Stats
-        $('#stat-done').textContent = data.done || 0;
-        $('#stat-total').textContent = data.total || 0;
-        $('#stat-success').textContent = data.stats?.success || 0;
-        $('#stat-failed').textContent = data.stats?.failed || 0;
-        $('#stat-chunked').textContent = data.stats?.chunked || 0;
-        $('#stat-meili').textContent = data.stats?.meili_indexed || 0;
-        $('#stat-qdrant').textContent = data.stats?.qdrant_vectorized || 0;
-        
-        // Stage
-        $('#stage-info').textContent = `Stage: ${data.stage || 'idle'} ${data.running ? '🟢 Running' : '⭕ Stopped'}`;
-        
-        // Current document
-        if (data.current_doc) {
-          $('#current-doc-section').style.display = 'block';
-          $('#current-doc-file').textContent = data.current_doc.filename || 'Unknown';
-          $('#current-doc-path').textContent = data.current_doc.path || '';
-          $('#current-doc-details').textContent = data.current_doc.details || '';
-          
-          // Update steps
-          const step = data.current_doc.step || '';
-          document.querySelectorAll('.step').forEach(el => el.className = 'step');
-          if (step === 'reading') $('#step-reading').className = 'step active';
-          if (step === 'extracting') $('#step-extracting').className = 'step active';
-          if (step === 'chunking') $('#step-chunking').className = 'step active';
-          if (step === 'embedding') $('#step-embedding').className = 'step active';
-          if (step === 'qdrant') $('#step-qdrant').className = 'step active';
-          if (step === 'meili') $('#step-meili').className = 'step active';
-          if (step === 'postgres') $('#step-postgres').className = 'step active';
-        } else {
-          $('#current-doc-section').style.display = 'none';
-        }
-      } catch (e) {
-        console.error('Error refreshing progress:', e);
-      }
-    }
-
-    // Refresh processing log
-    async function refreshProcessingLog() {
-      try {
-        const data = await api('/processing_log?limit=50');
-        const log = $('#processing-log');
-        
-        if (!data.entries || data.entries.length === 0) {
-          log.innerHTML = '<div class="muted">Nessun log disponibile</div>';
-          return;
-        }
-        
-        log.innerHTML = data.entries.map(entry => {
-          const status = entry.status || 'unknown';
-          const statusClass = status === 'success' ? 'success' : (status === 'error' ? 'error' : '');
-          const badge = status === 'success' ? '<span class="badge success">✓ OK</span>' : '<span class="badge error">✗ Error</span>';
-          
-          return `
-            <div class="log-entry ${statusClass}">
-              <div class="log-header">
-                <span class="log-file">${entry.filename || 'Unknown'}</span>
-                <span class="log-time">${new Date(entry.timestamp * 1000).toLocaleTimeString()}</span>
-              </div>
-              <div class="log-details">
-                ${badge}
-                ${entry.chunks ? `📄 ${entry.chunks} chunks` : ''}
-                ${entry.meili_indexed ? '🔍 Meili ✓' : ''}
-                ${entry.qdrant_vectorized ? '🎯 Qdrant ✓' : ''}
-                ${entry.error ? `<br><span class="error">${entry.error}</span>` : ''}
-              </div>
+        <!-- Status Card -->
+        <div class="card">
+            <div id="status-badge" class="status-badge status-idle">● IDLE</div>
+            
+            <h2>Ingestion Progress</h2>
+            
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill" style="width: 0%">0%</div>
+                </div>
+                <div class="progress-stats">
+                    <span id="progress-text">Ready to start</span>
+                    <span id="speed-text">-</span>
+                </div>
             </div>
-          `;
-        }).join('');
-      } catch (e) {
-        console.error('Error refreshing log:', e);
-      }
-    }
 
-    // Refresh queue
-    async function refreshQueue() {
-      try {
-        const s = await api('/queue');
-        $('#q-name').textContent = s.queue || '-';
-        $('#q-count').textContent = s.count ?? 0;
-        $('#q-workers').textContent = (s.workers || []).length;
-        $('#q-started').textContent = s.started_jobs ?? 0;
-        $('#q-deferred').textContent = s.deferred ?? 0;
-        $('#q-scheduled').textContent = s.scheduled ?? 0;
-        $('#q-failed').textContent = s.failed ?? 0;
-      } catch (e) {
-        console.error('Error refreshing queue:', e);
-      }
-    }
-
-    // Refresh health
-    async function refreshHealth() {
-      try {
-        const h = await api('/health');
-        $('#health').textContent = JSON.stringify(h, null, 2);
-      } catch (e) {
-        $('#health').textContent = 'Error: ' + e.message;
-      }
-    }
-
-    // Refresh failed docs
-    async function refreshFailed() {
-      try {
-        const docs = await api('/failed_docs?limit=100');
-        const list = $('#failed-list');
-        
-        if (!docs.length) {
-          list.innerHTML = '<div class="muted">✓ Nessun documento fallito</div>';
-          return;
-        }
-        
-        list.innerHTML = docs.map(doc => `
-          <div class="failed-row">
-            <div class="failed-head">
-              <b>${doc.filename || doc.doc_id || 'Unknown'}</b>
-              <span class="muted small">${new Date((doc.ts || 0) * 1000).toLocaleString()}</span>
+            <!-- ETA Display -->
+            <div id="eta-display" class="eta-display" style="display: none;">
+                <div class="eta-icon">⏱️</div>
+                <div class="eta-content">
+                    <div class="eta-label">Tempo Rimanente Stimato</div>
+                    <div id="eta-value" class="eta-value">Calculating...</div>
+                </div>
             </div>
-            <div class="error">${doc.error || 'Unknown error'}</div>
-            ${doc.path ? `<div class="small muted">📂 ${doc.path}</div>` : ''}
-          </div>
-        `).join('');
-      } catch (e) {
-        $('#failed-list').innerHTML = '<div class="error">Error loading failed docs</div>';
-      }
-    }
 
-    // Actions
-    $('#btn-init').addEventListener('click', async () => {
-      $('#status-msg').textContent = '⏳ Inizializzazione...';
-      try {
-        await api('/init_indexes', { method: 'POST' });
-        $('#status-msg').textContent = '✓ Indici inizializzati';
-      } catch (e) {
-        $('#status-msg').textContent = '✗ Errore: ' + e.message;
-      }
-      refreshHealth();
-      refreshQueue();
-    });
+            <!-- Current Document -->
+            <div id="current-doc-box" class="current-doc" style="display: none;">
+                <div class="current-doc-label">Documento in elaborazione</div>
+                <div id="current-doc-path" class="current-doc-path">-</div>
+            </div>
 
-    $('#btn-ingest').addEventListener('click', async () => {
-      const model = getSelectedModel();
-      $('#status-msg').textContent = `⏳ Avvio ingestion con ${model}...`;
-      
-      try {
-        const r = await api(`/ingestion/start?model=${model}`, { method: 'POST' });
-        $('#status-msg').textContent = `✓ Job avviato: ${r.job_id || ''} (${model})`;
-        
-        // Update collection info
-        const collectionMap = {
-          'sentence-transformer': 'kb_st_docs',
-          'llama3': 'kb_llama3_docs',
-          'mistral': 'kb_mistral_docs'
-        };
-        $('#collection-info').textContent = `Collection: ${collectionMap[model]} (${model})`;
-      } catch (e) {
-        $('#status-msg').textContent = '✗ Errore: ' + e.message;
-      }
-      refreshQueue();
-    });
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div id="stat-done" class="stat-value">0</div>
+                    <div class="stat-label">Processed</div>
+                </div>
+                <div class="stat-box">
+                    <div id="stat-total" class="stat-value">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-box stat-success">
+                    <div id="stat-success" class="stat-value">0</div>
+                    <div class="stat-label">Success</div>
+                </div>
+                <div class="stat-box stat-error">
+                    <div id="stat-failed" class="stat-value">0</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat-box stat-info">
+                    <div id="stat-chunks" class="stat-value">0</div>
+                    <div class="stat-label">Chunks</div>
+                </div>
+                <div class="stat-box stat-info">
+                    <div id="stat-vectors" class="stat-value">0</div>
+                    <div class="stat-label">Vectors</div>
+                </div>
+            </div>
+        </div>
 
-    $('#btn-pause').addEventListener('click', async () => {
-      try {
-        await api('/ingestion/pause', { method: 'POST' });
-        $('#status-msg').textContent = '⏸️ Pausa attivata';
-      } catch (e) {
-        $('#status-msg').textContent = '✗ Errore: ' + e.message;
-      }
-    });
+        <!-- Controls Card -->
+        <div class="card">
+            <h2>Controls</h2>
+            
+            <div>
+                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Select Model:</label>
+                <div class="model-selector">
+                    <div class="model-option active" data-model="sentence-transformer">
+                        ⚡ Sentence Transformer
+                    </div>
+                    <div class="model-option" data-model="llama3">
+                        🦙 Llama3
+                    </div>
+                    <div class="model-option" data-model="mistral">
+                        🌬️ Mistral
+                    </div>
+                </div>
+            </div>
 
-    $('#btn-resume').addEventListener('click', async () => {
-      try {
-        await api('/ingestion/resume', { method: 'POST' });
-        $('#status-msg').textContent = '▶️ Ripresa attivata';
-      } catch (e) {
-        $('#status-msg').textContent = '✗ Errore: ' + e.message;
-      }
-    });
+            <div class="btn-group">
+                <button id="btn-start" class="btn btn-primary">
+                    ▶️ Start Ingestion
+                </button>
+                <button id="btn-pause" class="btn btn-secondary" disabled>
+                    ⏸️ Pause
+                </button>
+                <button id="btn-resume" class="btn btn-secondary" disabled>
+                    ▶️ Resume
+                </button>
+                <button id="btn-stop" class="btn btn-danger" disabled>
+                    ⏹️ Stop
+                </button>
+            </div>
+        </div>
 
-    $('#btn-clear-failed').addEventListener('click', async () => {
-      if (!confirm('Vuoi davvero pulire la lista dei documenti falliti?')) return;
-      try {
-        await api('/failed_docs', { method: 'DELETE' });
-        $('#status-msg').textContent = '✓ Lista pulita';
-        refreshFailed();
-      } catch (e) {
-        $('#status-msg').textContent = '✗ Errore: ' + e.message;
-      }
-    });
+        <!-- Failed Documents Card -->
+        <div class="card">
+            <h2>Failed Documents (<span id="failed-count">0</span>)</h2>
+            <div id="failed-docs-list" class="failed-docs">
+                <p style="color: #64748b; font-size: 0.875rem;">No failed documents yet</p>
+            </div>
+        </div>
+    </div>
 
-    // Initial load
-    refreshProgress();
-    refreshProcessingLog();
-    refreshQueue();
-    refreshHealth();
-    refreshFailed();
+    <script>
+        // Global state
+        let selectedModel = 'sentence-transformer';
+        let isRunning = false;
+        let startTime = null;
+        let lastDone = 0;
+        let lastUpdate = null;
 
-    // Auto-refresh
-    setInterval(() => {
-      refreshProgress();
-      refreshProcessingLog();
-      refreshQueue();
-      refreshFailed();
-    }, 2000);
-  </script>
+        // Model selection
+        document.querySelectorAll('.model-option').forEach(option => {
+            option.addEventListener('click', () => {
+                if (isRunning) return; // Can't change model while running
+                
+                document.querySelectorAll('.model-option').forEach(o => o.classList.remove('active'));
+                option.classList.add('active');
+                selectedModel = option.getAttribute('data-model');
+            });
+        });
+
+        // Start ingestion
+        document.getElementById('btn-start').addEventListener('click', async () => {
+            if (!confirm(`Start ingestion with model ${selectedModel}?`)) return;
+            
+            try {
+                const response = await fetch(`/ingestion/start?model=${selectedModel}&mode=full`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    alert('Ingestion started!');
+                    startTime = Date.now();
+                    updateUI();
+                } else {
+                    alert('Error: ' + (data.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Pause
+        document.getElementById('btn-pause').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/ingestion/pause', { method: 'POST' });
+                const data = await response.json();
+                if (data.ok) alert('Ingestion paused');
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Resume
+        document.getElementById('btn-resume').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/ingestion/resume', { method: 'POST' });
+                const data = await response.json();
+                if (data.ok) alert('Ingestion resumed');
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Stop
+        document.getElementById('btn-stop').addEventListener('click', async () => {
+            if (!confirm('Stop ingestion?')) return;
+            
+            try {
+                const response = await fetch('/ingestion/stop', { method: 'POST' });
+                const data = await response.json();
+                if (data.ok) alert('Stop requested');
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Format time
+        function formatTime(seconds) {
+            if (!seconds || seconds < 0) return 'N/A';
+            
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${secs}s`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        }
+
+        // Format number
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        // Calculate ETA
+        function calculateETA(done, total, elapsed) {
+            if (done === 0 || elapsed === 0) return null;
+            
+            const speed = done / elapsed; // docs per second
+            const remaining = total - done;
+            const eta = remaining / speed;
+            
+            return eta;
+        }
+
+        // Update UI
+        async function updateUI() {
+            try {
+                // Get progress
+                const progressResp = await fetch('/progress');
+                const progress = await progressResp.json();
+                
+                // Get failed docs
+                const failedResp = await fetch('/failed_docs?limit=20');
+                const failed = await failedResp.json();
+                
+                // Update status
+                isRunning = progress.running || false;
+                const done = progress.done || 0;
+                const total = progress.total || 0;
+                const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+                
+                // Reset startTime se non è più running
+                if (!isRunning) {
+                    startTime = null;
+                    lastUpdate = null;
+                    lastDone = 0;
+                }
+                
+                // Status badge
+                const badge = document.getElementById('status-badge');
+                if (isRunning) {
+                    badge.className = 'status-badge status-running';
+                    badge.textContent = '● RUNNING';
+                } else if (progress.stage === 'done') {
+                    badge.className = 'status-badge status-done';
+                    badge.textContent = '✓ COMPLETED';
+                } else {
+                    badge.className = 'status-badge status-idle';
+                    badge.textContent = '○ IDLE';
+                }
+                
+                // Progress bar
+                document.getElementById('progress-fill').style.width = percent + '%';
+                document.getElementById('progress-fill').textContent = percent + '%';
+                document.getElementById('progress-text').textContent = 
+                    `${formatNumber(done)} / ${formatNumber(total)} documents`;
+                
+                // Calculate speed and ETA
+                if (isRunning && done > 0 && total > 0) {
+                    // Calcola velocità da dati reali se disponibile
+                    const now = Date.now();
+                    
+                    if (!startTime) {
+                        // Se non abbiamo startTime (es. dopo refresh), stimiamolo
+                        // Assumiamo una velocità media di 0.5 docs/sec
+                        startTime = now - (done * 2000); // 2 sec per doc come stima
+                    }
+                    
+                    if (!lastUpdate) {
+                        lastUpdate = now;
+                        lastDone = done;
+                    }
+                    
+                    // Calcola velocità istantanea
+                    const timeDiff = (now - lastUpdate) / 1000; // seconds
+                    const docsDiff = done - lastDone;
+                    
+                    let speed = 0;
+                    if (timeDiff >= 2) { // Aggiorna ogni 2 secondi
+                        speed = docsDiff / timeDiff;
+                        lastUpdate = now;
+                        lastDone = done;
+                    } else {
+                        // Usa velocità media
+                        const elapsed = (now - startTime) / 1000;
+                        speed = done / elapsed;
+                    }
+                    
+                    document.getElementById('speed-text').textContent = 
+                        `${speed.toFixed(2)} docs/sec`;
+                    
+                    // ETA
+                    if (speed > 0) {
+                        const remaining = total - done;
+                        const eta = remaining / speed;
+                        document.getElementById('eta-display').style.display = 'flex';
+                        document.getElementById('eta-value').textContent = formatTime(eta);
+                    } else {
+                        document.getElementById('eta-display').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('speed-text').textContent = '-';
+                    document.getElementById('eta-display').style.display = 'none';
+                }
+                
+                // Current document
+                if (progress.current_doc) {
+                    document.getElementById('current-doc-box').style.display = 'block';
+                    // Handle both string and object formats
+                    const currentDoc = typeof progress.current_doc === 'string' 
+                        ? progress.current_doc 
+                        : (progress.current_doc.path || progress.current_doc.title || JSON.stringify(progress.current_doc));
+                    document.getElementById('current-doc-path').textContent = currentDoc;
+                } else {
+                    document.getElementById('current-doc-box').style.display = 'none';
+                }
+                
+                // Stats
+                const stats = progress.stats || {};
+                document.getElementById('stat-done').textContent = formatNumber(done);
+                document.getElementById('stat-total').textContent = formatNumber(total);
+                document.getElementById('stat-success').textContent = formatNumber(stats.success || 0);
+                document.getElementById('stat-failed').textContent = formatNumber(stats.failed || 0);
+                document.getElementById('stat-chunks').textContent = formatNumber(stats.chunked || 0);
+                document.getElementById('stat-vectors').textContent = formatNumber(stats.qdrant_vectorized || 0);
+                
+                // Failed docs
+                document.getElementById('failed-count').textContent = failed.length;
+                
+                if (failed.length > 0) {
+                    const html = failed.map(doc => `
+                        <div class="failed-doc">
+                            <div class="failed-doc-path">${doc.path || 'Unknown'}</div>
+                            <div class="failed-doc-error">${doc.error || 'Unknown error'}</div>
+                        </div>
+                    `).join('');
+                    document.getElementById('failed-docs-list').innerHTML = html;
+                } else {
+                    document.getElementById('failed-docs-list').innerHTML = 
+                        '<p style="color: #64748b; font-size: 0.875rem;">No failed documents yet</p>';
+                }
+                
+                // Update buttons
+                document.getElementById('btn-start').disabled = isRunning;
+                document.getElementById('btn-pause').disabled = !isRunning;
+                document.getElementById('btn-resume').disabled = !isRunning;
+                document.getElementById('btn-stop').disabled = !isRunning;
+                
+                // Disable model selection while running
+                document.querySelectorAll('.model-option').forEach(option => {
+                    option.style.opacity = isRunning ? '0.5' : '1';
+                    option.style.cursor = isRunning ? 'not-allowed' : 'pointer';
+                });
+                
+            } catch (error) {
+                console.error('Error updating UI:', error);
+            }
+        }
+
+        // Auto-refresh
+        setInterval(updateUI, 2000);
+        updateUI();
+    </script>
 </body>
 </html>

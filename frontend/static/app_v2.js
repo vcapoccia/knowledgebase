@@ -236,7 +236,18 @@ function populateSelect(selectId, facetData) {
     select.remove(1);
   }
   
-  const entries = Object.entries(facetData).sort((a, b) => b[1] - a[1]);
+  // Converti in array se è un oggetto
+  let entries = [];
+  
+  if (Array.isArray(facetData)) {
+    // Formato API: [{value: "X", count: N}, ...]
+    entries = facetData.map(item => [item.value, item.count]);
+  } else if (typeof facetData === 'object' && facetData !== null) {
+    // Formato vecchio: {value: count, ...}
+    entries = Object.entries(facetData);
+  }
+  
+  entries.sort((a, b) => (b[1] || 0) - (a[1] || 0));
   
   if (entries.length === 0) {
     select.disabled = true;
@@ -254,8 +265,11 @@ function populateSelect(selectId, facetData) {
     select.appendChild(option);
   });
   
-  if (currentValue && facetData[currentValue]) {
-    select.value = currentValue;
+  if (currentValue) {
+    const stillExists = entries.some(([val]) => val === currentValue);
+    if (stillExists) {
+      select.value = currentValue;
+    }
   }
 }
 
